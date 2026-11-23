@@ -2,8 +2,8 @@
 
 App web para registrar, explorar y ubicar por voz los objetos de cualquier colección: ropa, despensa, herramientas, archivos, materiales.
 
-- **App:** https://lalitoelprofefulanito-dot.github.io/vozcalizador/
-- **Versión con ejemplos** (para probar todas las funciones): https://lalitoelprofefulanito-dot.github.io/vozcalizador/ejemplo.html
+- **App:** https://lalitoelprofefulanito-dot.github.io/Vozcalizador/
+- **Versión con ejemplos** (para probar todas las funciones): https://lalitoelprofefulanito-dot.github.io/Vozcalizador/ejemplo.html
 
 ## Cómo usarla en el celular
 1. Abra la dirección de la app en **Google Chrome**.
