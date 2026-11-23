@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0f766e">
+<title>Vozcalizador: acomoda y encuentra por voz</title>
+<meta name="description" content="Registre, explore y ubique por voz los objetos de cualquier colección.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+/* Plan: interfaz de celular a pantalla completa (centrada en computadora). Teal para lo gratis y la acción principal, ámbar para lo de pago. */
+:root{
+  --fondo:#eef2f1; --papel:#ffffff; --tinta:#0b1a17; --suave:#2f403c; --linea:#3b4240;
+  --acento:#0f766e; --acento-suave:#d9efeb; --sobre-acento:#ffffff; --pago:#a8670f; --pago-suave:#fbf0dc; --error:#c53030; --duda:#2b6cb0;
+  --f-titulo:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-texto:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--fondo:#0b1312;--papel:#14201e;--tinta:#f1f7f5;--suave:#c3d1ce;--linea:#8b9794;--acento:#3fb8a9;--acento-suave:#163a35;--pago:#e3a945;--pago-suave:#3a2c12;--error:#fc8181;--duda:#90cdf4;color-scheme:dark}}
+:root[data-theme="dark"]{--fondo:#0b1312;--papel:#14201e;--tinta:#f1f7f5;--suave:#c3d1ce;--linea:#8b9794;--acento:#3fb8a9;--acento-suave:#163a35;--pago:#e3a945;--pago-suave:#3a2c12;--error:#fc8181;--duda:#90cdf4;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--fondo);color:var(--tinta);font-family:var(--f-texto);font-size:16px;line-height:1.45;display:flex;justify-content:center}
+h1,h2,h3{font-family:var(--f-titulo);margin:0;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--acento);outline-offset:2px}
+.app{width:100%;max-width:480px;height:100%;background:var(--papel);display:flex;flex-direction:column;border-left:1.5px solid var(--linea);border-right:1.5px solid var(--linea)}
+.barra{padding:14px 16px 10px;border-bottom:1.5px solid var(--linea);display:flex;align-items:center;gap:10px}
+.barra h1{font-size:1.15rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.marca{font-family:var(--f-titulo);font-weight:800;color:var(--acento);font-size:.85rem}
+.chip{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--acento-suave);color:var(--acento);white-space:nowrap}
+.chip.pago{background:var(--pago-suave);color:var(--pago)}
+.cuerpo{flex:1;overflow-y:auto;padding:14px 16px 20px;display:flex;flex-direction:column;gap:12px}
+.pestanas{display:grid;grid-template-columns:repeat(5,1fr);border-top:1.5px solid var(--linea);background:var(--papel)}
+.pestanas button{border:0;background:none;padding:8px 2px 12px;font-size:.7rem;color:var(--suave);display:flex;flex-direction:column;align-items:center;gap:2px}
+.pestanas button span{font-size:1.2rem;line-height:1}
+.pestanas button[aria-selected="true"]{color:var(--acento);font-weight:700}
+.boton{border:0;border-radius:12px;padding:11px 14px;font-weight:700;background:var(--acento);color:var(--sobre-acento)}
+.boton.sec{background:var(--acento-suave);color:var(--acento)}
+.boton.peligro{background:none;color:var(--error);border:1.5px solid var(--linea)}
+.boton.grande{padding:14px;font-size:1.05rem;width:100%}
+.boton:disabled{opacity:.5;cursor:not-allowed}
+.fila{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fila > .boton{flex:1}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo label,.etq{font-size:.8rem;font-weight:700;color:var(--suave)}
+.campo input,.campo select,textarea,.entrada{border:1.5px solid var(--linea);border-radius:10px;padding:10px;background:var(--papel);width:100%}
+textarea{min-height:110px;resize:vertical}
+.grupo{font-size:.76rem;font-weight:700;color:var(--suave);text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
+.tarjeta{border:1.5px solid var(--linea);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.plantilla{border:1.5px solid var(--linea);border-radius:14px;padding:12px;background:var(--papel);text-align:left;display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;width:100%}
+.plantilla b{display:block}
+.plantilla small{color:var(--suave)}
+.plantilla .ico{font-size:1.6rem;text-align:center}
+.desplegable{border:1.5px solid var(--linea);border-radius:10px;max-height:320px;overflow-y:auto;background:var(--papel);margin-top:4px}
+.desplegable .amb{font-size:.76rem;font-weight:700;color:var(--suave);text-transform:uppercase;letter-spacing:.04em;padding:10px 12px 4px}
+.desplegable button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--linea);background:none;padding:9px 12px}
+.desplegable button small{display:block;color:var(--suave);font-size:.78rem}
+.plantilla.bloqueada{background:var(--pago-suave);border-color:transparent}
+.objeto{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center;padding:8px;border:1.5px solid var(--linea);border-radius:12px;background:var(--papel);text-align:left;width:100%}
+.mini{width:48px;height:60px;border-radius:7px;display:grid;place-items:center;font-family:var(--f-titulo);font-weight:800;color:#fff;font-size:1.1rem;overflow:hidden}
+.mini img{width:100%;height:100%;object-fit:cover}
+.objeto b{display:block;font-size:.95rem;line-height:1.2}
+.objeto small{color:var(--suave);font-size:.78rem}
+.lugar{font-family:var(--f-titulo);font-weight:800;color:var(--acento);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.95rem}
+.mas{border:1.5px dashed var(--acento);color:var(--acento);background:none;border-radius:10px;padding:9px 12px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1.5px solid var(--linea);background:var(--papel);border-radius:999px;padding:6px 11px;font-size:.82rem}
+.chips button[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:var(--sobre-acento)}
+.chips button.bloqueada{background:var(--pago-suave);border-color:transparent;color:var(--suave)}
+.opcion{border:1.5px solid var(--linea);background:var(--papel);border-radius:10px;padding:9px 11px;font-size:.88rem;text-align:left;display:flex;justify-content:space-between;gap:8px;align-items:center;width:100%}
+.opcion[aria-pressed="true"]{border-color:var(--acento);background:var(--acento-suave);font-weight:700}
+.opcion.bloqueada{color:var(--suave);background:var(--pago-suave);border-color:transparent}
+.candado{font-size:.72rem;font-weight:700;color:var(--pago);white-space:nowrap}
+.aviso{font-size:.84rem;color:var(--suave);background:var(--fondo);border-radius:10px;padding:9px 11px}
+.aviso.pago{background:var(--pago-suave);color:var(--tinta)}
+.aviso.bien{background:var(--acento-suave);color:var(--tinta)}
+.aviso:empty{display:none}
+.nivel{display:grid;grid-template-columns:26px 1fr auto;gap:6px;align-items:center}
+.nivel span{font-weight:800;color:var(--acento);text-align:center}
+.lugares{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.res{border-left:4px solid var(--acento);padding:7px 10px;background:var(--acento-suave);border-radius:0 10px 10px 0}
+.res.duda{border-color:var(--duda);background:rgba(43,108,176,.1)}
+.res.no{border-color:var(--error);background:rgba(197,48,48,.08)}
+.res b{display:block}
+.res .dice{font-family:var(--f-titulo);font-weight:800;color:var(--acento);font-size:1.05rem}
+.res .opciones{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--acento);color:var(--sobre-acento);font-size:1.9rem;align-self:center}
+.mic.activo{background:var(--error);box-shadow:0 0 0 8px rgba(197,48,48,.18)}
+.foto-previa{width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--fondo)}
+.vista{border:1.5px solid var(--linea);border-radius:10px;padding:10px;font-size:.84rem;max-height:220px;overflow:auto;background:var(--fondo)}
+.vista table{border-collapse:collapse;width:100%}
+.vista td,.vista th{border:1.5px solid var(--linea);padding:3px 6px;text-align:left}
+.vista h4{margin:6px 0 4px;font-family:var(--f-titulo)}
+.vista p{margin:0 0 6px}
+.dialogo{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.dialogo .hoja{background:var(--papel);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:18px 16px 22px;display:flex;flex-direction:column;gap:10px;max-height:90%;overflow:auto}
+.precio{font-family:var(--f-titulo);font-weight:800;font-size:2rem;color:var(--pago)}
+.oculto{display:none!important}
+.vacio{text-align:center;color:var(--suave);padding:24px 8px}
+.interruptor{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.interruptor input{width:46px;height:26px;accent-color:var(--pago)}
+.tanda{border:1.5px solid var(--linea);border-radius:12px;padding:0 10px;background:var(--papel)}
+.tanda summary{min-height:50px;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-size:.9rem}
+.tanda summary::-webkit-details-marker{display:none}
+.tanda summary::after{content:"▾";margin-left:auto;color:var(--acento);font-weight:800}
+.tanda[open] summary::after{content:"▴"}
+.tanda .contenido{display:flex;flex-direction:column;gap:6px;padding:0 0 10px}
+.objeto.fuera b{color:var(--suave)}
+.muestra{display:inline-flex;align-items:center;gap:10px}
+.muestra i{width:24px;height:24px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px var(--linea)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="barra">
+    <span class="marca" aria-hidden="true">◉</span>
+    <h1 id="titulo">Vozcalizador</h1>
+    <span class="chip" id="chipPlan">Gratis</span>
+  </header>
+  <main class="cuerpo" id="cuerpo"></main>
+  <nav class="pestanas" id="pestanas" role="tablist" aria-label="Secciones">
+    <button role="tab" data-p="lista" aria-selected="true"><span>▦</span>Colección</button>
+    <button role="tab" data-p="agregar" aria-selected="false"><span>＋</span>Agregar</button>
+    <button role="tab" data-p="tandas" aria-selected="false"><span>🎙</span>Ubicar</button>
+    <button role="tab" data-p="explorar" aria-selected="false"><span>🔊</span>Explorar</button>
+    <button role="tab" data-p="mas" aria-selected="false"><span>☰</span>Más</button>
+  </nav>
+</div>
+<div id="capa"></div>
+
+<script>
+(function(){
+'use strict';
+/* ---------------- Datos y reglas ---------------- */
+var PRECIO = '79 pesos';
+var LIMITES = {colecciones:1, campos:2, donde:2, que:1, fotos:1, documentosPrueba:1, historial:2};  // documentosPrueba: por tipo (1 de Word y 1 de Excel)
+/* Qué se quiere organizar: la lista que se despliega en «Nombre de la colección».
+   Sale del texto «Situaciones cotidianas…» del usuario (sección 2), en su mismo orden de ámbitos; los números entre corchetes son sus situaciones.
+   Quedan fuera los ámbitos que no son objetos (digital, finanzas, tiempo, personas) y los registros de salud.
+   Cada opción preselecciona: [id, nombre, ¿dónde va?, ¿qué es?, campos]. */
+var AMBITOS = [
+  ['Hogar','🏠',[
+    ['ropa','Ropa y calzado',['Mueble o armario','Cajón'],['Temporada','Color'],['Talla']],                       // [1-5]
+    ['accesorios','Accesorios, bolsas y mochilas',['Mueble o armario','Repisa'],['Categoría'],[]],                // [6-7]
+    ['documentos','Documentos familiares',['Archivero','Carpeta'],['Categoría'],['Fecha de alta']],              // [9-12]
+    ['recuerdos','Fotografías y recuerdos',['Mueble o armario','Caja'],['Categoría'],['Notas']],                  // [13-14]
+    ['juguetes','Juguetes y juegos de mesa',['Habitación o área','Contenedor'],['Categoría','Estado'],[]],        // [16-17]
+    ['herramientas','Herramientas de la casa',['Mueble o armario','Cajón'],['Categoría','Estado'],[]],           // [18]
+    ['limpieza','Productos de limpieza',['Mueble o armario','Repisa'],['Categoría'],['Cantidad','Caducidad']],   // [27-28]
+    ['electronicos','Cables, cargadores y aparatos',['Cajón','Contenedor'],['Categoría','Estado'],[]],          // [41-43]
+    ['cuarto','Bodega o cuarto de servicio',['Zona','Caja'],['Categoría','Destino'],[]],                         // [35-36]
+    ['depurar','Cosas para donar, vender o desechar',['Habitación o área','Caja'],['Destino','Estado'],[]]       // [38-39]
+  ]],
+  ['Cocina','🍳',[
+    ['despensa','Despensa',['Mueble o armario','Repisa'],['Categoría'],['Caducidad','Cantidad']],               // [46-53]
+    ['refri','Refrigerador y congelador',['Sección','Repisa'],['Categoría'],['Caducidad']],                     // [24]
+    ['utensilios','Utensilios, vajilla y recipientes',['Mueble o armario','Cajón'],['Categoría','Tamaño','Frecuencia de uso'],[]], // [19-21, 57-59]
+    ['especias','Especias y condimentos',['Repisa','Posición'],['Categoría'],['Caducidad']]                     // [22]
+  ]],
+  ['Trabajo y oficina','💼',[
+    ['archivo','Archivo de oficina',['Archivero','Carpeta'],['Categoría'],['Folio','Fecha de alta']],          // [67-72]
+    ['mobiliario','Mobiliario y equipo',['Edificio o piso','Habitación o área'],['Estado','Disponibilidad'],['Número de serie','Responsable']], // [91-94]
+    ['papeleria','Papelería y consumibles',['Mueble o armario','Repisa'],['Categoría'],['Cantidad','Existencia mínima']] // [101-103]
+  ]],
+  ['Escuela','🏫',[
+    ['didactico','Material didáctico',['Repisa','Caja'],['Categoría','Grado o grupo'],['Cantidad']],            // [110-112]
+    ['computo','Equipo de cómputo',['Habitación o área','Mueble o armario'],['Estado','Disponibilidad'],['Número de serie','Responsable']], // [128-135]
+    ['deportes','Material deportivo y de artes',['Zona','Contenedor'],['Categoría','Estado'],['Cantidad']],    // [148-150]
+    ['libros_texto','Libros para repartir por grupo',['Sección','Caja'],['Grado o grupo'],['Cantidad']],       // [146-147]
+    ['tienda_escolar','Tienda escolar',['Sección','Repisa'],['Categoría'],['Precio de venta','Cantidad']]      // [154]
+  ]],
+  ['Bibliotecas y colecciones','📚',[
+    ['biblioteca','Libros y biblioteca',['Anaquel','Entrepaño'],['Categoría'],['Autor']],                     // [113-124, 161]
+    ['revistas','Revistas, periódicos y mapas',['Estante','Carpeta'],['Categoría'],['Fecha de alta']],        // [162-167]
+    ['historico','Documentos históricos',['Archivero','Carpeta'],['Categoría','Estado'],['Folio']],          // [164, 168]
+    ['piezas','Obras de arte y piezas de colección',['Habitación o área','Posición'],['Categoría','Material','Estado'],['Folio']] // [169-171]
+  ]],
+  ['Vehículos','🚗',[
+    ['refacciones','Herramientas y refacciones del vehículo',['Zona','Caja'],['Categoría','Estado'],[]]       // [259-262]
+  ]],
+  ['Cuidado personal','🩹',[
+    ['botiquin','Botiquín y medicamentos',['Mueble o armario','Contenedor'],['Categoría'],['Caducidad','Cantidad']] // [283-285, 294-295]
+  ]],
+  ['Fiestas y eventos','🎉',[
+    ['eventos','Decoración y materiales para eventos',['Zona','Caja'],['Categoría','Destino'],['Cantidad']]   // [305-306, 315]
+  ]],
+  ['Mudanzas, viajes y almacenes','📦',[
+    ['mudanza','Mudanza',['Habitación o área','Caja'],['Destino'],['Notas']],                                  // [316-325]
+    ['equipaje','Equipaje de viaje',['Contenedor'],['Categoría'],[]],                                         // [326-329]
+    ['almacen','Almacén o bodega',['Pasillo','Estante','Repisa'],['Categoría'],['Cantidad','Existencia mínima']] // [332-338]
+  ]],
+  ['Comercios y negocios','🏷',[
+    ['mercancia','Mercancía de una tienda',['Sección','Repisa'],['Categoría','Disponibilidad'],['Precio de venta','Cantidad']], // [341-348]
+    ['envios','Pedidos y paquetes por enviar',['Zona','Posición'],['Destino'],['Folio']],                    // [356, 362-363]
+    ['reparacion','Productos defectuosos o en reparación',['Zona','Caja'],['Estado'],['Folio']]              // [364-365]
+  ]],
+  ['Espacios comunitarios','🤝',[
+    ['compartidas','Herramientas compartidas',['Zona','Contenedor'],['Disponibilidad','Estado'],[]],         // [368]
+    ['acopio','Donaciones y centro de acopio',['Zona','Caja'],['Categoría','Destino'],['Cantidad']]          // [379-384]
+  ]],
+  ['Pasatiempos','🎨',[
+    ['numismatica','Monedas, estampillas o tarjetas',['Carpeta','Posición'],['Categoría','Estado'],[]],      // [386-388]
+    ['discos','Discos, películas y videojuegos',['Estante','Posición'],['Categoría'],[]],                   // [391-393]
+    ['instrumentos','Instrumentos y partituras',['Habitación o área','Carpeta'],['Categoría','Estado'],[]], // [394-395]
+    ['plantas','Plantas y semillas',['Zona','Contenedor'],['Categoría','Temporada'],['Fecha de alta']],      // [400-403]
+    ['costura','Costura, manualidades y materiales artísticos',['Mueble o armario','Cajón'],['Categoría','Color','Material'],[]], // [397-398, 407-409]
+    ['campismo','Equipo deportivo y de campismo',['Zona','Contenedor'],['Categoría','Estado'],[]]           // [405-406]
+  ]]
+];
+var PLANTILLAS = [{id:'blanco', ico:'◻', ambito:'', t:'En blanco', campos:[], niveles:[], clasif:[]}].concat(
+  [].concat.apply([], AMBITOS.map(function(a){return a[2].map(function(x){return {id:x[0], ico:a[1], ambito:a[0], t:x[1], niveles:x[2], clasif:x[3], campos:x[4]};});})));
+/* Botón «+ catalogación»: lo que la voz dice de cada objeto. «¿Dónde va?» = ubicación física; «¿Qué es?» = clasificación.
+   Gratis: 2 de «¿Dónde va?» y 1 de «¿Qué es?», las que el usuario elija (LIMITES.donde y LIMITES.que). Los valores fijos se tocan en lugar de escribirse. */
+var UBICACIONES = ['Anaquel','Entrepaño','Estante','Repisa','Pasillo','Sección','Caja','Cajón','Contenedor','Archivero','Carpeta','Mueble o armario','Habitación o área','Zona','Edificio o piso','Posición'];
+var CLASIFICACIONES = {
+  'Categoría':null, 'Subcategoría':null,
+  'Color':['rojo','naranja','amarillo','verde','azul','morado','rosa','café','negro','blanco','gris'],
+  'Tamaño':['grande','mediano','pequeño'],
+  'Material':['plástico','madera','metal','papel','tela'],
+  'Estado':['nuevo','usado','en reparación','deteriorado','fuera de servicio'],
+  'Disponibilidad':['disponible','prestado','reservado','agotado'],
+  'Destino':['conservar','entregar','devolver','reparar','donar','desechar'],
+  'Temporada':['primavera','verano','otoño','invierno'],
+  'Grado o grupo':null,
+  'Frecuencia de uso':['diario','frecuente','ocasional','extraordinario']
+};
+function caben(grupo,lista){return libre()||lista.length<LIMITES[grupo];}  // ¿se puede agregar otra opción de ese grupo?
+var ORDENES = [
+  {id:'alfa', t:'Alfabético', gratis:true},
+  {id:'lugar', t:'Por lugar', gratis:true},
+  {id:'recientes', t:'Más recientes primero', gratis:false},
+  {id:'categoria', t:'Por categoría', gratis:false}
+];
+var CATALOGO = {   // campos que se pueden registrar; cada colección ve los generales y los que le tocan en CAMPOS_DE (los números son situaciones del texto del usuario)
+  'Identificación':['Folio','Código de barras','ISBN','Número de serie','Clave del producto','Número de inventario','Número de parte','Número de guía','Expediente','Lote'],
+  'Descripción':['Autor','Editorial','Edición','Idioma','Colección o serie','Género','Formato','Plataforma','Marca','Modelo','Talla','Medidas','Peso','Capacidad','Técnica','Año','País','Valor nominal','Especie o variedad','Presentación','Tipo de documento'],
+  'Uso y cuidado':['Dueño o persona','Vehículo','Uso o indicación','Cómo se conserva','Cuidado al mover','Riego','Luz','Falla','Evento','Proyecto','Campo formativo','Fase educativa','Grado recomendado'],
+  'Cantidades y dinero':['Cantidad','Unidad de medida','Existencia mínima','Precio de venta','Costo','Proveedor','Procedencia'],
+  'Fechas':['Fecha de alta','Fecha del documento','Fecha de apertura','Caducidad','Vence','Garantía','Fecha de préstamo','Fecha de devolución','Fecha de siembra','Fecha del evento','Fecha de envío','Fecha de entrega','Último movimiento'],
+  'Otros':['Responsable','Notas']
+};
+/* Campos según lo que se organiza: los generales sirven para todo; los demás solo aparecen en las colecciones donde tienen sentido
+   (por ejemplo, ISBN, autor y editorial solo en libros). Una colección «en blanco» o con nombre propio ve todos. */
+var CAMPOS_GENERALES=['Folio','Cantidad','Fecha de alta','Responsable','Notas'];
+var CAMPOS_DE={
+  'ISBN':['biblioteca','revistas','libros_texto'],                                                    // [120]
+  'Autor':['biblioteca','revistas','libros_texto','historico','piezas','discos','instrumentos'],     // [116]; en discos, el artista; en partituras, el compositor
+  'Editorial':['biblioteca','revistas','libros_texto'],                                               // [118]
+  'Edición':['biblioteca','revistas','libros_texto'],                                                 // [172]
+  'Idioma':['biblioteca','revistas','libros_texto','discos'],
+  'Colección o serie':['biblioteca','revistas','discos','numismatica','juguetes','piezas'],           // [115]
+  'Género':['biblioteca','discos'],
+  'Formato':['discos','recuerdos'],                                                                   // vinilo, CD, DVD; foto impresa o digital
+  'Plataforma':['discos'],                                                                            // videojuegos [393]
+  'Grado recomendado':['didactico','biblioteca','libros_texto','deportes'],                          // [111]
+  'Campo formativo':['didactico','libros_texto','biblioteca'],                                       // [126]
+  'Fase educativa':['didactico','libros_texto','biblioteca'],                                        // [112]
+  'Talla':['ropa','accesorios','deportes','campismo'],                                               // [4]
+  'Dueño o persona':['ropa','accesorios','juguetes','equipaje','recuerdos','electronicos','deportes','campismo','cuarto','depurar'], // [1, 31]: de quién es, en la familia o el equipo
+  'Marca':['ropa','accesorios','herramientas','limpieza','electronicos','despensa','refri','utensilios','mobiliario','papeleria','computo','deportes','refacciones','botiquin','almacen','mercancia','tienda_escolar','instrumentos','campismo','juguetes'],
+  'Modelo':['herramientas','electronicos','mobiliario','computo','refacciones','instrumentos','juguetes'],
+  'Número de serie':['herramientas','electronicos','mobiliario','computo','refacciones','instrumentos','compartidas'],
+  'Número de inventario':['mobiliario','computo','didactico','deportes','piezas','historico','compartidas','instrumentos'], // [91, 175]
+  'Número de parte':['refacciones','electronicos','herramientas'],                                   // [260]
+  'Vehículo':['refacciones'],                                                                         // [259-262]: a qué vehículo pertenece
+  'Garantía':['herramientas','electronicos','mobiliario','computo','refacciones','instrumentos','compartidas'], // [12, 361]
+  'Falla':['reparacion','computo','electronicos','compartidas'],                                     // [131, 364]
+  'Fecha de entrega':['reparacion','envios'],                                                         // [365, 340]
+  'Caducidad':['limpieza','despensa','refri','especias','botiquin','tienda_escolar','mercancia','acopio','plantas'], // [25, 48, 284]
+  'Fecha de apertura':['despensa','refri','especias','botiquin','limpieza'],                          // [51]
+  'Cómo se conserva':['despensa','refri','especias','botiquin','plantas','historico','piezas'],        // [50, 283, 188]
+  'Presentación':['botiquin','despensa','limpieza','mercancia'],
+  'Uso o indicación':['botiquin','limpieza','herramientas'],                                         // [283]
+  'Lote':['despensa','botiquin','limpieza','almacen','mercancia','tienda_escolar'],
+  'Unidad de medida':['despensa','especias','limpieza','papeleria','costura','almacen','mercancia','tienda_escolar','acopio'],
+  'Código de barras':['despensa','limpieza','papeleria','botiquin','biblioteca','almacen','mercancia','tienda_escolar'],
+  'Clave del producto':['papeleria','refacciones','almacen','mercancia','tienda_escolar','envios','reparacion'], // [344]
+  'Existencia mínima':['despensa','limpieza','papeleria','didactico','botiquin','almacen','mercancia','tienda_escolar'], // [103, 353]
+  'Precio de venta':['mercancia','tienda_escolar','envios'],                                         // [345]
+  'Costo':['mobiliario','papeleria','computo','refacciones','piezas','numismatica','almacen','mercancia','tienda_escolar'],
+  'Proveedor':['despensa','papeleria','botiquin','almacen','mercancia','tienda_escolar'],            // [357]
+  'Último movimiento':['computo','compartidas','almacen','mercancia','tienda_escolar','acopio'],
+  'Número de guía':['envios'],                                                                        // [340]
+  'Fecha de envío':['envios'],                                                                        // [363]
+  'Peso':['envios','mudanza','almacen','equipaje','campismo'],
+  'Medidas':['mobiliario','utensilios','costura','piezas','eventos','mudanza','campismo','accesorios','cuarto','depurar'],
+  'Capacidad':['utensilios','electronicos','equipaje','campismo'],
+  'Cuidado al mover':['mudanza','envios','piezas','equipaje'],                                        // [324]: frágil, este lado arriba
+  'Tipo de documento':['documentos','archivo','historico'],
+  'Fecha del documento':['documentos','archivo','historico'],                                         // [97]
+  'Vence':['documentos','archivo'],                                                                   // [100, 242]
+  'Expediente':['documentos','archivo','historico'],                                                  // [68]
+  'Proyecto':['archivo','didactico','papeleria'],                                                     // [72, 127]
+  'Fecha de préstamo':['biblioteca','compartidas','computo','deportes','didactico','herramientas'],   // [95, 135, 184]
+  'Fecha de devolución':['biblioteca','compartidas','computo','deportes','didactico','herramientas'], // [185]
+  'Evento':['eventos'],                                                                               // [305]
+  'Fecha del evento':['eventos'],
+  'Técnica':['piezas','costura'],                                                                     // [169]
+  'Año':['piezas','numismatica','discos','revistas','historico','recuerdos','biblioteca'],
+  'País':['numismatica','piezas','discos'],
+  'Valor nominal':['numismatica'],                                                                    // [386]
+  'Procedencia':['piezas','historico','numismatica','acopio'],                                        // [174]
+  'Especie o variedad':['plantas'],                                                                   // [401]
+  'Fecha de siembra':['plantas'],                                                                     // [403]
+  'Riego':['plantas'],
+  'Luz':['plantas']
+};
+function campoAplica(c,k){return !c.plantilla||c.plantilla==='blanco'||CAMPOS_GENERALES.indexOf(k)>=0||(CAMPOS_DE[k]||[]).indexOf(c.plantilla)>=0||c.campos.indexOf(k)>=0;}
+var FORMATOS = [   // el ejemplo de cada formato se arma con la catalogación de la colección abierta (ver ejemploFormato)
+  {id:'numeros', t:'Solo números', gratis:true},
+  {id:'nombres', t:'Con nombres', gratis:true},
+  {id:'codigo', t:'Como código', gratis:false},
+  {id:'propio', t:'Frase propia', gratis:false},
+  {id:'extra', t:'Con otro dato al final', gratis:false}
+];
+/* Tonos cromáticos sencillos (matiz h y saturación s). Cada uno se convierte en colores para tema claro y oscuro con tonosDe().
+   Gratis: uno por tema (gratisEn). Esos dos llevan líneas neutras (negro grisáceo en claro); los de pago, líneas de su propio tono. */
+var PALETAS=[
+  {id:'turquesa', t:'Turquesa', h:174, s:78, gratisEn:'claro'},
+  {id:'azul', t:'Azul', h:215, s:75, gratisEn:'oscuro'},
+  {id:'rojo', t:'Rojo', h:0, s:72},
+  {id:'naranja', t:'Naranja', h:18, s:85},
+  {id:'amarillo', t:'Amarillo', h:50, s:90},
+  {id:'verde', t:'Verde', h:130, s:50},
+  {id:'morado', t:'Morado', h:275, s:60},
+  {id:'rosa', t:'Rosa', h:330, s:70}
+];
+var NEUTROS={claro:['#3b4240','#2f403c'], oscuro:['#8b9794','#c3d1ce']};
+var TEMAS=[{id:'sistema',t:'Predeterminado'},{id:'claro',t:'Claro'},{id:'oscuro',t:'Oscuro'}];
+var COLORES=['#0f766e','#a8670f','#2b6cb0','#9b2c2c','#6b46c1','#2f855a','#c05621','#2c5282'];
+var CLAVE='vozcalizador-ejemplo', CLAVE_ANTERIOR='organizador-interactivo-ejemplo-v2';  // versión de prueba: arranca vacía; los ejemplos se cargan desde Ajustes o la bienvenida
+
+/* ---- Cargar ejemplos para probar (solo en la versión de prueba; Ajustes, debajo de la versión completa) ---- */
+var precarga=null;   // texto que una pantalla recibe al abrirse: {p:pantalla, texto, tipo}
+var EJEMPLOS_COLECCIONES=[   // [nombre, opción de la lista, objetos: [nombre, ¿dónde va?, ¿qué es?, campos]]
+  ['Ropa y calzado','ropa',[
+    ['Chamarra de mezclilla',['1','2'],{'Temporada':'otoño','Color':'azul'},{'Talla':'M'}],
+    ['Suéter de lana',['1','3'],{'Temporada':'invierno','Color':'gris'},{'Talla':'G'}],
+    ['Suéter de algodón',['1','2'],{'Temporada':'primavera','Color':'verde'},{'Talla':'M'}],   // parecido al anterior: la búsqueda de ejemplo pregunta cuál es
+    ['Playera blanca',['2','1'],{'Temporada':'verano','Color':'blanco'},{'Talla':'M'}],
+    ['Bufanda tejida',['1','3'],{'Temporada':'invierno','Color':'rojo'},{'Talla':'Unitalla'}],
+    ['Tenis para correr',['3','1'],{'Temporada':'primavera','Color':'negro'},{'Talla':'26'}],
+    ['Botas de lluvia',['3','2'],{'Temporada':'otoño','Color':'amarillo'},{'Talla':'25'}]]],
+  ['Despensa','despensa',[
+    ['Arroz',['1','1'],{'Categoría':'Granos'},{'Caducidad':'03/2027','Cantidad':'2'}],
+    ['Frijol negro',['1','1'],{'Categoría':'Granos'},{'Caducidad':'01/2027','Cantidad':'3'}],
+    ['Atún en lata',['1','2'],{'Categoría':'Enlatados'},{'Caducidad':'06/2028','Cantidad':'6'}],
+    ['Aceite de oliva',['1','3'],{'Categoría':'Aceites'},{'Caducidad':'08/2027','Cantidad':'1'}],
+    ['Galletas de avena',['2','1'],{'Categoría':'Botanas'},{'Caducidad':'12/2026','Cantidad':'4'}],
+    ['Café molido',['2','2'],{'Categoría':'Bebidas'},{'Caducidad':'02/2027','Cantidad':'1'}]]],
+  ['Almacén o bodega','almacen',[
+    ['Tornillos de media pulgada',['A','1','2'],{'Categoría':'Ferretería'},{'Cantidad':'200','Existencia mínima':'50'}],
+    ['Cinta canela',['A','2','1'],{'Categoría':'Empaque'},{'Cantidad':'24','Existencia mínima':'10'}],
+    ['Guantes de carnaza',['B','1','3'],{'Categoría':'Seguridad'},{'Cantidad':'12','Existencia mínima':'6'}],
+    ['Extensión eléctrica',['B','2','1'],{'Categoría':'Eléctrico'},{'Cantidad':'5','Existencia mínima':'2'}],
+    ['Pintura blanca de 4 litros',['C','1','1'],{'Categoría':'Pintura'},{'Cantidad':'8','Existencia mínima':'3'}]]],
+  ['Mudanza','mudanza',[
+    ['Vajilla',['Cocina','1'],{'Destino':'conservar'},{'Notas':'Frágil'}],
+    ['Libros de cocina',['Cocina','2'],{'Destino':'conservar'},{}],
+    ['Lámpara de mesa',['Recámara','3'],{'Destino':'donar'},{}],
+    ['Ropa de invierno',['Recámara','4'],{'Destino':'conservar'},{}],
+    ['Cables sueltos',['Estudio','5'],{'Destino':'desechar'},{}]]]
+];
+var CARGAS=[
+  ['colecciones','🗂','Colecciones de varios tipos','Ropa, despensa, almacén y mudanza, con fotos y catalogaciones distintas. Para probar la lista, buscar, ordenar, explorar y exportar.'],
+  ['fotos','🖼','Fotos en la colección actual','Pone una foto de muestra a los objetos que no tienen. Para probar miniaturas, historial y Word con fotos.'],
+  ['historial','🕘','Historial de búsquedas','5 búsquedas en la colección actual: 2 de hoy y 3 de días anteriores. Para probar el filtro y el límite gratis de 2.'],
+  ['tanda','🎙','Una búsqueda para identificar','Abre Ubicar con un nombre completo, uno incompleto (si hay dos parecidos, la app pregunta cuál), uno repetido con «siguiente» y uno que no existe. En Ropa y calzado sale la pregunta.'],
+  ['dictadoObjetos','🗣','Un dictado de objetos','Abre Agregar con 3 objetos dictados en la colección actual: usa nombres de catalogación, «primer…», «siguiente objeto» y un valor que se queda puesto.'],
+  ['dictadoWord','✎','Un documento de Word para dictar','Abre Dictar con un texto que usa «título», «punto y aparte» y «nueva viñeta».'],
+  ['dictadoExcel','▦','Un documento de Excel para dictar','Abre Dictar con un texto que usa «siguiente columna» y «siguiente renglón».'],
+  ['importar','⬆','Un archivo para importar','Abre Importar con 3 filas que coinciden con las columnas de la colección actual.'],
+  ['reiniciar','↺','Reiniciar documentos de prueba','Vuelve a dar 1 Word y 1 Excel gratis en el dictado.'],
+  ['empezar','⟲','Borrar todo y empezar de cero','Deja la app vacía, como la recibe alguien que la acaba de instalar.']
+];
+function fotoEjemplo(texto,i){   // imagen de muestra dibujada en el celular: color y nombre del objeto
+  var cv=document.createElement('canvas'), x=cv.getContext('2d'), renglones=[], r='';
+  cv.width=180; cv.height=225; x.fillStyle=color(i); x.fillRect(0,0,180,225);
+  x.fillStyle='rgba(255,255,255,.18)'; x.fillRect(14,14,152,197);
+  x.fillStyle='#fff'; x.font='bold 19px sans-serif'; x.textAlign='center';
+  texto.split(' ').forEach(function(w){if(x.measureText(r+' '+w).width>150&&r){renglones.push(r);r=w;}else r=r?r+' '+w:w;}); renglones.push(r);
+  renglones.forEach(function(l,j){x.fillText(l,90,112-(renglones.length-1)*12+j*24);});
+  return cv.toDataURL('image/jpeg',.75);
+}
+function cargarEjemplo(id){
+  var c=col();
+  if(id==='colecciones'){
+    var estabaVacia=!E.colecciones.length;
+    var nuevas=EJEMPLOS_COLECCIONES.filter(function(e){return !E.colecciones.some(function(x){return x.nombre===e[0]+' (ejemplo)';});});
+    if(!nuevas.length) return aviso('Esas colecciones de ejemplo ya están cargadas.','pago');
+    nuevas.forEach(function(e){
+      var n=nuevaColeccion(e[0]+' (ejemplo)',e[1]), t=Date.now();
+      e[2].forEach(function(o,i){n.objetos.push({id:uid(),alta:t-(e[2].length-i)*60000,nombre:o[0],campos:JSON.parse(JSON.stringify(o[3])),lugar:o[1].slice(),clasif:JSON.parse(JSON.stringify(o[2])),fotos:[fotoEjemplo(o[0],i)]});});
+      E.colecciones.push(n);
+    });
+    if(estabaVacia){E.actual=E.colecciones[0].id; guardar(); return ir('lista');}
+    guardar(); return aviso('Se agregaron '+nuevas.length+' colecciones. Cámbielas en Más → Mis colecciones.','bien');
+  }
+  if(id==='fotos'){
+    var k=0; c.objetos.forEach(function(o,i){if(!(o.fotos||[]).length){o.fotos=[fotoEjemplo(o.nombre,i)];k++;}});
+    guardar(); return aviso(k?'Se pusieron fotos a '+k+' objetos de «'+c.nombre+'».':'Todos los objetos ya tenían foto.',k?'bien':'pago');
+  }
+  if(id==='historial'){
+    if(c.objetos.length<3) return aviso('La colección actual necesita al menos 3 objetos.','pago');
+    var dia=86400000, ahora=Date.now(), ob=c.objetos;
+    var ok=function(o){return {r:o.nombre.toLowerCase(),estado:'ok',id:o.id,nombre:o.nombre};};
+    var hechas=[[ahora-dia*7,[0,1]],[ahora-dia*3,[2,0,1]],[ahora-dia,[1,2]],[ahora-3600000,[0,2,'duda']],[ahora-600000,[1,0,2,'no']]].map(function(t){
+      return {inicio:t[0]-t[1].length*90000,fin:t[0],filas:t[1].map(function(i){return i==='duda'?{r:'el de la tapa roja',estado:'duda',id:null,nombre:''}:i==='no'?{r:'una cosa que no está',estado:'no',id:null,nombre:''}:ok(ob[i]);})};
+    });
+    c.tandas=(c.tandas||[]).concat(hechas); guardar(); return aviso('Se agregaron 5 búsquedas al historial de «'+c.nombre+'». Véalas en Ubicar.','bien');
+  }
+  if(id==='tanda'){
+    if(c.objetos.length<3) return aviso('La colección actual necesita al menos 3 objetos.','pago');
+    var o=c.objetos, w=palabras(o[1].nombre).filter(function(x){return !ENLACES[x];}), corto=w.slice(0,Math.max(1,w.length-1)).join(' ');   // nombre incompleto: sin su última palabra
+    precarga={p:'tandas',texto:[o[0].nombre.toLowerCase(),corto,o[2].nombre.toLowerCase()+' siguiente '+o[2].nombre.toLowerCase(),'una cosa que no está'].join('\n')};
+    return ir('tandas');
+  }
+  if(id==='dictadoObjetos'){
+    var r=[], cl0=(c.clasif||[])[0], n0=c.niveles[0], n1=c.niveles[1];
+    if(cl0) r.push(cl0+' '+((CLASIFICACIONES[cl0]||[])[1]||'prueba')+'.');
+    r.push('Objeto de prueba uno'+(n0?', '+n0+' uno':'')+(n1?', primer '+n1:'')+'.');
+    r.push('Siguiente objeto. Objeto de prueba dos'+(n1?', segundo '+n1:'')+'.');
+    r.push('Siguiente objeto. Objeto de prueba tres'+(n0?', '+n0+' dos':'')+'.');
+    precarga={p:'agregar',texto:r.join('\n')}; return ir('agregar');
+  }
+  if(id==='dictadoWord'){precarga={p:'dictar',tipo:'word',texto:'título Lista de compras de la semana punto y aparte Estos son los productos que faltan nueva viñeta arroz nueva viñeta frijol nueva viñeta café punto y aparte Comprar el sábado en la mañana'}; return ir('dictar');}
+  if(id==='dictadoExcel'){precarga={p:'dictar',tipo:'excel',texto:'Producto siguiente columna Cantidad siguiente columna Precio siguiente renglón Arroz siguiente columna 2 siguiente columna 28 siguiente renglón Frijol siguiente columna 3 siguiente columna 35'}; return ir('dictar');}
+  if(id==='importar'){
+    var cl=c.clasif||[], cab=['Nombre'].concat(c.campos,c.niveles,cl);
+    var filasCSV=[cab].concat([1,2,3].map(function(n){return ['Objeto importado '+n].concat(c.campos.map(function(k){return /Cantidad|Existencia|Precio|Costo/.test(k)?String(n*5):k+' '+n;}),c.niveles.map(function(){return String(n);}),cl.map(function(k){return (CLASIFICACIONES[k]||[])[n-1]||'Grupo '+n;}));}));
+    precarga={p:'importar',texto:aCSV(filasCSV)}; return ir('importar');
+  }
+  if(id==='reiniciar'){E.pruebasDictado={}; guardar(); return aviso('Listo: vuelve a tener 1 Word y 1 Excel de prueba.','bien');}
+  if(id==='empezar') return confirmar('¿Borrar todo lo de esta versión de prueba y empezar de cero?',function(){E={pago:false,colecciones:[],actual:null}; guardar(); plan(); ir('nueva');});
+}
+function pintarCargaEjemplos(){
+  $('cargaEjemplos').innerHTML=CARGAS.map(function(x){return '<button class="plantilla" data-carga="'+x[0]+'"><span class="ico">'+x[1]+'</span><span><b>'+esc(x[2])+'</b><small>'+esc(x[3])+'</small></span><span>›</span></button>';}).join('');
+  $('cargaEjemplos').querySelectorAll('[data-carga]').forEach(function(b){b.onclick=function(){cargarEjemplo(b.getAttribute('data-carga'));};});
+}
+function aplicarPrecarga(p){   // llena la pantalla recién abierta con el texto de ejemplo y la pone a funcionar
+  if(!precarga||precarga.p!==p) return; var x=precarga; precarga=null;
+  if(p==='tandas'){$('dictado').value=x.texto; $('ident').click();}
+  if(p==='dictar'){if(x.tipo==='excel') $('tE').click(); $('txtDoc').value=x.texto; $('txtDoc').oninput();}
+  if(p==='importar'){$('pegar').value=x.texto; $('leerImp').click();}
+  if(p==='agregar'){$('dictObj').open=true; $('txtObj').value=x.texto; $('txtObj').oninput();}
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function nuevaColeccion(nombre,plantillaId){
+  var p=PLANTILLAS.filter(function(x){return x.id===plantillaId;})[0]||PLANTILLAS[0];
+  return {id:uid(),nombre:nombre,plantilla:p.id,campos:p.campos.slice(),niveles:p.niveles.slice(),clasif:p.clasif.slice(),orden:'alfa',formato:'numeros',datoExtra:p.campos[0]||'',prefijo:prefijoDe(nombre),folioSig:1,objetos:[]};
+}
+/* ---- Folio: cada objeto recibe un número que no se repite ni se reutiliza en su colección (A-0001, A-0002…).
+   El prefijo sale del nombre de la colección y se cambia en Ajustes; cambiarlo no altera los números. ---- */
+var NO_CUENTAN=new Set('y e o u de del la el los las un una en con para por a al mi mis su sus'.split(' '));
+function prefijoDe(nombre){
+  var p=palabras(String(nombre).replace(/\s*\(.*\)\s*$/,'')).filter(function(x){return !NO_CUENTAN.has(x)&&!/^\d/.test(x);});
+  return (p.length>1?p.slice(0,3).map(function(x){return x[0];}).join(''):(p[0]||'').slice(0,3)).toUpperCase();
+}
+function folio(o,c){return o.folio?(c.prefijo?c.prefijo+'-':'')+('000'+o.folio).slice(-Math.max(4,String(o.folio).length)):'';}
+function ponerFolios(){
+  E.colecciones.forEach(function(c){
+    if(c.prefijo===undefined) c.prefijo=prefijoDe(c.nombre);
+    var max=c.objetos.reduce(function(m,o){return Math.max(m,o.folio||0);},0);
+    c.folioSig=Math.max(c.folioSig||1,max+1);
+    c.objetos.filter(function(o){return !o.folio;}).sort(function(a,b){return (a.alta||0)-(b.alta||0);}).forEach(function(o){o.folio=c.folioSig++;});
+  });
+}
+/* ---- Almacenamiento ----
+   Los datos viven en IndexedDB, que no tiene el tope de unos 5 MB del almacenamiento simple y aguanta muchas fotos.
+   Las fotos van aparte, una por registro, y se escriben solo cuando son nuevas: así cada guardado escribe unos cuantos KB
+   aunque la colección tenga miles de fotos, y termina antes de que la persona cierre la app.
+   Se pide al navegador almacenamiento persistente para que no borre los datos cuando el teléfono necesita espacio.
+   Si el navegador no ofrece IndexedDB, se usa el almacenamiento simple. Los datos guardados antes se pasan solos. */
+var E = {pago:false,colecciones:[],actual:null};  // sin datos: la app pide crear la primera colección
+var BD = null, CLAVE_FOTO = new Map(), FOTOS_NUEVAS = 0;   // foto (dataURL) → su clave en el almacén «fotos»; el contador evita claves repetidas
+function iniciarDatos(){
+  return new Promise(function(listo){
+    var conDatos=function(s,porClave,deOtraBase){
+      var antiguo=deOtraBase||!s||!s.json;   // sin registro, de la base anterior o guardado con el formato anterior (todo junto)
+      if(s&&s.json){s=JSON.parse(s.json); s.colecciones.forEach(function(c){c.objetos.forEach(function(o){o.fotos=(o.fotos||[]).map(function(k){var f=porClave.get(k); if(f) CLAVE_FOTO.set(f,k); return f;}).filter(Boolean);});});}
+      if(!s){try{s=JSON.parse(localStorage.getItem(CLAVE_ANTERIOR));}catch(e){}}
+      if(s&&s.colecciones){E=s; ponerFolios();}
+      if(BD&&s&&antiguo){guardar(); try{localStorage.removeItem(CLAVE_ANTERIOR);}catch(e){}}
+      if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(function(){});
+      listo();
+    };
+    try{
+      var r=indexedDB.open(BASE,1);
+      r.onupgradeneeded=function(){var db=r.result; db.createObjectStore('datos'); db.createObjectStore('fotos');};
+      r.onsuccess=function(){
+        BD=r.result; BD.onversionchange=function(){BD.close(); aviso('Se abrió una versión más nueva de la app en otra pestaña. Cierre esta para seguir trabajando allá.','pago');};
+        leerBase(BD,CLAVE,function(datos,porClave){
+          if(datos) return conDatos(datos,porClave,false);
+          leerAnterior(function(viejos,fotosViejas){conDatos(viejos,fotosViejas,!!viejos);});
+        });
+      };
+      r.onerror=function(){conDatos(null,new Map(),false);};
+    }catch(e){conDatos(null,new Map(),false);}
+  });
+}
+var BASE='vozcalizador', BASE_ANTERIOR='organizador-interactivo';   // la app se llamaba «Organizador interactivo»
+// Lee de una base el registro de datos y todas las fotos (la base más antigua no tenía almacén de fotos).
+function leerBase(db,clave,listo){
+  try{
+    var almacenes=['datos','fotos'].filter(function(n){return db.objectStoreNames.contains(n);}), datos=null, porClave=new Map();
+    if(almacenes.indexOf('datos')<0) return listo(null,porClave);
+    var t=db.transaction(almacenes);
+    t.objectStore('datos').get(clave).onsuccess=function(ev){datos=ev.target.result||null;};
+    if(almacenes.indexOf('fotos')>=0) t.objectStore('fotos').openCursor().onsuccess=function(ev){var cur=ev.target.result; if(cur){porClave.set(cur.key,cur.value); cur.continue();}};
+    t.oncomplete=function(){listo(datos,porClave);}; t.onerror=t.onabort=function(){listo(null,porClave);};
+  }catch(e){listo(null,new Map());}
+}
+// Datos guardados cuando la app tenía su nombre anterior: se copian una vez a la base nueva. La base vieja se deja intacta.
+function leerAnterior(listo){
+  if(!indexedDB.databases) return listo(null,new Map());
+  indexedDB.databases().then(function(lista){
+    if(!lista.some(function(d){return d.name===BASE_ANTERIOR;})) return listo(null,new Map());
+    var r=indexedDB.open(BASE_ANTERIOR);
+    r.onsuccess=function(){var db=r.result; leerBase(db,CLAVE_ANTERIOR,function(d,f){db.close(); listo(d,f);});};
+    r.onerror=function(){listo(null,new Map());};
+  }).catch(function(){listo(null,new Map());});
+}
+function noGuardado(){aviso('No se pudo guardar en este dispositivo. Descargue un respaldo en Ajustes para no perder sus datos.','pago');}
+function guardar(){
+  ponerFolios();   // todo objeto nuevo, venga de donde venga (registro, dictado, importación, ejemplos), recibe su folio al guardarse
+  try{
+    if(BD){
+      var t=BD.transaction(['datos','fotos'],'readwrite'), almacen=t.objectStore('fotos'), usadas=new Set();
+      var json=JSON.stringify(E,function(k,v){
+        if(k!=='fotos'||!Array.isArray(v)) return v;
+        return v.map(function(f){var clave=CLAVE_FOTO.get(f); if(!clave){clave=uid()+'-'+(++FOTOS_NUEVAS); CLAVE_FOTO.set(f,clave); almacen.put(f,clave);} usadas.add(clave); return clave;});
+      });
+      t.objectStore('datos').put({json:json},CLAVE);
+      CLAVE_FOTO.forEach(function(clave,f){if(!usadas.has(clave)){CLAVE_FOTO.delete(f); almacen.delete(clave);}});   // fotos quitadas o de objetos borrados
+      t.onerror=t.onabort=noGuardado; return true;
+    }
+    localStorage.setItem(CLAVE,JSON.stringify(E)); return true;
+  }catch(e){noGuardado(); return false;}
+}
+function col(){return E.colecciones.filter(function(c){return c.id===E.actual;})[0]||E.colecciones[0];}
+
+/* ---------------- Utilidades ---------------- */
+var $=function(id){return document.getElementById(id);};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+var NUMS={uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12',trece:'13',catorce:'14',quince:'15',veinte:'20',treinta:'30',cien:'100',mil:'1000'};
+var ENLACES={el:1,la:1,los:1,las:1,un:1,una:1,de:1,del:1,y:1,e:1,a:1,al:1,en:1,con:1,por:1,para:1,que:1,se:1,su:1};
+function palabras(s){return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).map(function(p){return NUMS[p]||p.replace(/^0+(?=\d)/,'');});}
+function inicial(s){var w=palabras(s).filter(function(x){return !ENLACES[x];});return (w[0]||'?').slice(0,1).toUpperCase();}
+var LETRA_NUM=['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez'];
+function dice(o,c,formato){
+  c=c||col(); formato=formato||c.formato; var l=o.lugar||[];
+  var partes=c.niveles.map(function(n,i){return {n:n,v:l[i]};}).filter(function(x){return x.v!==''&&x.v!=null;});
+  var que=(c.clasif||[]).map(function(k){return (o.clasif||{})[k];}).filter(Boolean);   // «¿Qué es?»: la voz dice solo el valor
+  if(!partes.length&&!que.length) return 'sin lugar';
+  var donde=!partes.length?'':({
+    nombres:function(){return partes.map(function(x){return x.n.toLowerCase()+' '+x.v;}).join(', ');},
+    codigo:function(){return partes.map(function(x){return palabras(x.n)[0].charAt(0).toUpperCase()+x.v;}).join(', ');},   // «C2» = cajón 2: inicial del nivel y su valor
+    propio:function(){return (c.frase||'va en')+' '+partes.map(function(x){return x.n.toLowerCase()+' '+x.v;}).join(', ');}
+  }[formato]||function(){return partes.map(function(x){return x.v;}).join(', ');})();
+  var texto=[donde].concat(que).filter(Boolean).join(', ');
+  if(formato==='extra'){var v=(o.campos||{})[c.datoExtra]; if(v) texto+=', '+c.datoExtra.toLowerCase()+' '+v;}
+  return texto;
+}
+function hablar(texto,alTerminar){
+  try{
+    if(!('speechSynthesis' in window)) return false;
+    speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(texto); u.lang='es-MX';
+    var v=speechSynthesis.getVoices().filter(function(x){return /^es/i.test(x.lang);}); if(v.length) u.voice=v.filter(function(x){return /MX|419|US/.test(x.lang);})[0]||v[0];
+    if(alTerminar) u.onend=alTerminar; speechSynthesis.speak(u); return true;
+  }catch(e){return false;}
+}
+function callar(){try{speechSynthesis.cancel();}catch(e){}}
+function aviso(t,tipo){var a=$('avisoGlobal'); if(a){a.className='aviso'+(tipo?' '+tipo:''); a.textContent=t;}}
+function color(i){return COLORES[i%COLORES.length];}
+function libre(){return E.pago;}
+function candado(){return '<span class="candado">🔒 De pago</span>';}
+/* Apariencia: los temas son gratis; un tono de pago vuelve al gratis del tema si se quita la versión completa, sin perder la elección */
+var oscuroSistema=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+function modoOscuro(){var t=E.tema||'sistema';return t==='oscuro'||(t==='sistema'&&!!oscuroSistema&&oscuroSistema.matches);}
+function hsl(h,s,l){s/=100;l/=100;var f=function(n){var k=(n+h/30)%12,a=s*Math.min(l,1-l);return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0');};return '#'+f(0)+f(8)+f(4);}
+function aHsl(hex){var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,h=0,l=(mx+mn)/2,s=d?d/(1-Math.abs(2*l-1)):0;
+  if(d)h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;return {h:Math.round((h*60+360)%360),s:Math.round(s*100)};}
+function luz(hex){return [1,3,5].map(function(i){var c=parseInt(hex.slice(i,i+2),16)/255;return c<=0.03928?c/12.92:Math.pow((c+0.055)/1.055,2.4);}).reduce(function(a,c,i){return a+c*[0.2126,0.7152,0.0722][i];},0);}
+function contraste(a,b){var x=luz(a),y=luz(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+/* Devuelve [acento, acento suave, líneas, texto secundario]. En claro, el acento se oscurece hasta leerse con texto blanco (4.5:1). */
+function tonosDe(h,s,oscuro,hl,sl){
+  if(hl==null){hl=h;sl=s;}
+  if(oscuro) return [hsl(h,Math.min(s,70),62),hsl(h,Math.min(s,40),18),hsl(hl,Math.min(sl,25),58),hsl(hl,Math.min(sl,45),84)];
+  var l=42,ac=hsl(h,s,l); while(l>15&&contraste(ac,'#ffffff')<4.5){l--;ac=hsl(h,s,l);}
+  return [ac,hsl(h,Math.min(s,60),92),hsl(hl,Math.min(sl,35),34),hsl(hl,Math.min(sl,40),22)];
+}
+function paletaActiva(){
+  if(libre()&&E.paleta==='personal'&&E.personal) return {id:'personal'};
+  var modo=modoOscuro()?'oscuro':'claro', p=PALETAS.filter(function(x){return x.id===E.paleta;})[0];
+  return p&&(libre()||p.gratisEn===modo)?p:PALETAS.filter(function(x){return x.gratisEn===modo;})[0];
+}
+function coloresDe(p,oscuro){
+  if(p.id==='personal'){var a=aHsl(E.personal.principal),b=aHsl(E.personal.lineas||E.personal.principal);return tonosDe(a.h,a.s,oscuro,b.h,b.s);}
+  var v=tonosDe(p.h,p.s,oscuro); if(p.gratisEn){var n=oscuro?NEUTROS.oscuro:NEUTROS.claro;v[2]=n[0];v[3]=n[1];} return v;
+}
+function aplicarApariencia(){
+  var raiz=document.documentElement, tema=E.tema||'sistema';
+  if(tema==='sistema') raiz.removeAttribute('data-theme'); else raiz.setAttribute('data-theme',tema==='oscuro'?'dark':'light');
+  var v=coloresDe(paletaActiva(),modoOscuro());
+  raiz.style.setProperty('--acento',v[0]); raiz.style.setProperty('--acento-suave',v[1]); raiz.style.setProperty('--linea',v[2]); raiz.style.setProperty('--suave',v[3]);
+  raiz.style.setProperty('--sobre-acento',contraste(v[0],'#ffffff')>=contraste(v[0],'#0b1312')?'#ffffff':'#0b1312');
+  var m=document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute('content',v[0]);
+}
+if(oscuroSistema){if(oscuroSistema.addEventListener) oscuroSistema.addEventListener('change',aplicarApariencia); else if(oscuroSistema.addListener) oscuroSistema.addListener(aplicarApariencia);}
+function miniatura(o,i){return '<div class="mini" style="background:'+color(i)+'">'+(o.fotos&&o.fotos[0]?'<img src="'+o.fotos[0]+'" alt="">':esc(inicial(o.nombre)))+'</div>';}
+
+/* ---------------- Ventana de pago ---------------- */
+function ofrecerPago(que){
+  var u=usoDe(); u.candados[que]=(u.candados[que]||0)+1; guardar();   // para el informe de uso: qué funciones de pago se buscan
+  $('capa').innerHTML='<div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="tPago"><div class="hoja"><h2 id="tPago">Versión completa</h2><p>'+esc(que)+' está en la versión completa.</p><div class="precio">'+PRECIO+'</div><p class="aviso">Un solo pago, para siempre. Desbloquea todas las opciones: colecciones ilimitadas; más catalogaciones y las propias; todos los campos; todos los formatos de voz; dictar varios objetos seguidos; varias fotos por objeto; exportar a Word con fotos; ordenar por más recientes o por categoría; filtros combinados en la lista y al explorar; el historial completo de búsquedas; dictar documentos sin límite; y todos los tonos de color. Sus datos nunca se bloquean: exportar a Excel, el respaldo y borrar siempre son gratis.</p><p class="aviso pago">Esta es una vista previa: el cobro con Google Play todavía no está conectado. El botón de abajo solo simula la compra.</p><div class="fila"><button class="boton sec" id="pCerrar">Ahora no</button><button class="boton" id="pSimular" style="background:var(--pago);color:#1b1200">Simular compra</button></div></div></div>';
+  $('pCerrar').onclick=function(){$('capa').innerHTML='';};
+  $('pSimular').onclick=function(){E.pago=true;guardar();$('capa').innerHTML='';plan();ir(pantalla);};
+}
+function plan(){$('chipPlan').textContent=E.pago?'Completa':'Gratis';$('chipPlan').className=E.pago?'chip pago':'chip';aplicarApariencia();}
+
+/* ---------------- Pantallas ---------------- */
+var pantalla='lista';
+function ir(p){
+  callar(); detenerMic(); pantalla=p;
+  document.querySelectorAll('#pestanas button').forEach(function(b){b.setAttribute('aria-selected',String(b.getAttribute('data-p')===p));});
+  if(!E.colecciones.length&&p!=='nueva'){p='nueva';pantalla=p;}   // versión sin datos: primero se crea una colección
+  $('titulo').textContent=col()?col().nombre:'Vozcalizador';
+  ({lista:vLista,agregar:vAgregar,tandas:vTandas,explorar:vExplorar,mas:vMas,colecciones:vColecciones,nueva:vNueva,exportar:vExportar,ajustes:vAjustes,dictar:vDictar,importar:vImportar})[p]();
+  aplicarPrecarga(p);
+  $('cuerpo').scrollTop=0;
+}
+
+function vLista(){
+  var c=col();
+  var h='<div class="campo"><label for="busca">Buscar</label><input id="busca" placeholder="Folio, nombre, campo, lugar o categoría" autocomplete="off"></div>';
+  h+='<div class="campo"><label for="orden">Ordenar</label><select id="orden">'+ORDENES.map(function(x){var lock=!libre()&&!x.gratis;return '<option value="'+x.id+'"'+(ordenActual(c)===x.id?' selected':'')+'>'+esc(x.t)+(lock?' 🔒':'')+'</option>';}).join('')+'</select></div>';
+  /* Filtrar por catalogación: los valores que ya tienen los objetos en «¿Dónde va?» y «¿Qué es?». Gratis un filtro; dos combinados, de pago. */
+  var valores=[];
+  c.niveles.forEach(function(n,i){c.objetos.forEach(function(o){var v=(o.lugar||[])[i]; if(v&&!valores.some(function(x){return x.i===i&&x.v===v;})) valores.push({t:n,i:i,v:v});});});
+  (c.clasif||[]).forEach(function(k){c.objetos.forEach(function(o){var v=(o.clasif||{})[k]; if(v&&!valores.some(function(x){return x.k===k&&x.v===v;})) valores.push({t:k,k:k,v:v});});});
+  valores.sort(function(a,b){return (a.k?1:0)-(b.k?1:0)||(a.i||0)-(b.i||0)||a.v.localeCompare(b.v,'es',{numeric:true});});
+  var opciones=function(){var g=null,out='';valores.forEach(function(x,n){if(x.t!==g){out+=(g!==null?'</optgroup>':'')+'<optgroup label="'+esc(x.t)+'">';g=x.t;}out+='<option value="'+n+'">'+esc(x.t+' '+x.v)+'</option>';});return out+(g!==null?'</optgroup>':'');};
+  if(valores.length){
+    h+='<div class="campo"><label for="filtroL">Filtrar por catalogación</label><select id="filtroL"><option value="">Todos los objetos</option>'+opciones()+'</select></div>';
+    h+='<div class="campo"><label for="filtroL2">Además</label><select id="filtroL2" '+(libre()?'':'disabled')+'><option value="">'+(libre()?'Sin filtro adicional':'🔒 Filtros combinados: versión completa')+'</option>'+(libre()?opciones():'')+'</select></div>';
+  }
+  var total=E.colecciones.reduce(function(a,x){return a+x.objetos.length;},0);
+  if(total&&Date.now()-(E.ultimoRespaldo||0)>7*864e5) h+='<div class="tarjeta" id="recordatorio"><p class="aviso pago">'+(E.ultimoRespaldo?'Hace más de una semana que no descarga un respaldo.':'Todavía no tiene un respaldo de sus '+total+' objetos.')+' Si el teléfono se pierde o se borra la app, el respaldo es lo único que los recupera.</p><button class="boton" id="respAhora">Descargar respaldo ahora</button></div>';
+  h+='<div class="aviso" id="avisoGlobal"></div><div id="lista" style="display:flex;flex-direction:column;gap:8px"></div>';
+  $('cuerpo').innerHTML=h;
+  if($('respAhora')) $('respAhora').onclick=function(){descargarRespaldo(); $('recordatorio').remove();};
+  var pinta=function(){
+    var q=palabras($('busca').value).join(' ');
+    var filtros=valores.length?[valores[$('filtroL').value],valores[$('filtroL2').value]].filter(Boolean):[];
+    var pasa=function(o,x){return x.k?(o.clasif||{})[x.k]===x.v:(o.lugar||[])[x.i]===x.v;};
+    // Si lo buscado es un folio («RC-0003», «rc 3» o «0003»), muestra ese objeto y no todo lo que tenga un 3.
+    var f=/^\s*([A-Za-zÑñ0-9]*?)[-\s]?0*(\d+)\s*$/.exec($('busca').value), porFolio=f&&c.objetos.filter(function(o){return o.folio===+f[2]&&(!f[1]||f[1].toUpperCase()===(c.prefijo||''));});
+    if(porFolio&&!porFolio.length) porFolio=null;
+    var arr=ordenar(c.objetos.filter(function(o){return filtros.every(function(x){return pasa(o,x);})&&(porFolio?porFolio.indexOf(o)>=0:!q||palabras(o.nombre+' '+Object.values(o.campos||{}).join(' ')+' '+(o.lugar||[]).join(' ')+' '+Object.values(o.clasif||{}).join(' ')).join(' ').indexOf(q)>=0);}),c);
+    $('lista').innerHTML=arr.length?arr.map(function(o,i){
+      var extra=c.campos.map(function(k){var v=(o.campos||{})[k];return v?esc(k)+': '+esc(v):'';}).filter(Boolean).join(' · ');
+      return '<button class="objeto" data-id="'+o.id+'">'+miniatura(o,i)+'<div><b>'+esc(o.nombre)+'</b><small>'+esc(folio(o,c))+(extra?' · '+extra:'')+'</small></div><div class="lugar">'+esc(dice(o,c))+'</div></button>';
+    }).join(''):'<div class="vacio">'+(c.objetos.length?'Nada coincide con la búsqueda o el filtro.':'Esta colección está vacía.<br>Toque «Agregar» para registrar el primer objeto.')+'</div>';
+    $('lista').querySelectorAll('.objeto').forEach(function(b){b.onclick=function(){editar=b.getAttribute('data-id');ir('agregar');};});
+  };
+  $('busca').oninput=pinta;
+  if(valores.length) $('filtroL').onchange=$('filtroL2').onchange=pinta;
+  $('orden').onchange=function(){var x=ORDENES.filter(function(y){return y.id===$('orden').value;})[0]; if(!libre()&&!x.gratis){$('orden').value=ordenActual(c);return ofrecerPago('Ordenar la lista «'+x.t+'»');} c.orden=x.id; guardar(); pinta();};
+  pinta();
+}
+/* Orden de la lista. Gratis: alfabético y por lugar; de pago: más recientes y por categoría (si se deja de pagar, vuelve a alfabético). */
+function ordenActual(c){var x=ORDENES.filter(function(y){return y.id===c.orden;})[0];return x&&(x.gratis||libre())?x.id:'alfa';}
+function alta(o){return o.alta||parseInt(String(o.id).slice(0,-5),36)||0;}   // los objetos anteriores guardan la fecha dentro de su id
+function ordenar(arr,c){
+  var txt=function(a,b){return String(a).localeCompare(String(b),'es',{numeric:true,sensitivity:'base'});};
+  var por={
+    alfa:function(a,b){return txt(a.nombre,b.nombre);},
+    lugar:function(a,b){return txt((a.lugar||[]).join(' · ')||'~',(b.lugar||[]).join(' · ')||'~')||txt(a.nombre,b.nombre);},
+    recientes:function(a,b){return alta(b)-alta(a);},
+    categoria:function(a,b){var k=(c.clasif||[])[0];return txt((a.clasif||{})[k]||'~',(b.clasif||{})[k]||'~')||txt(a.nombre,b.nombre);}
+  }[ordenActual(c)];
+  return arr.slice().sort(por);
+}
+
+var editar=null;
+function vAgregar(){
+  var c=col(); var o=editar?c.objetos.filter(function(x){return x.id===editar;})[0]:null; editar=null;
+  var borrador=o?JSON.parse(JSON.stringify(o)):{id:uid(),nombre:'',campos:{},lugar:[],clasif:{},fotos:[]};
+  var h='<h2 style="font-size:1.1rem">'+(o?'Editar objeto'+(o.folio?' · '+esc(folio(o,c)):''):'Agregar objeto')+'</h2>';
+  if(!o) h+='<details class="tarjeta" id="dictObj"><summary><b>🎙 Dictar objetos con la voz</b></summary><p class="aviso" id="ayudaDict"></p><button class="mic" id="mic" aria-pressed="false" aria-label="Dictar objetos">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><div class="campo"><label for="txtObj">Lo dictado (puede corregirlo)</label><textarea id="txtObj"></textarea></div><div class="vista" id="prevObj"></div><div class="fila" id="botonesDict"></div></details>';
+  h+='<div class="campo"><label for="foto">Foto</label><input type="file" id="foto" accept="image/*" capture="environment" '+(libre()?'multiple':'')+'></div><div id="fotos" class="fila"></div>';
+  h+='<p class="aviso">'+(libre()?'Puede subir varias fotos por objeto.':'Versión gratis: 1 foto por objeto.')+' Por ahora la app no lee el texto de la foto: escriba el nombre o díctelo con «Dictar objetos».</p>';
+  h+='<div class="campo"><label for="nombre">Nombre (obligatorio)</label><input id="nombre" value="'+esc(borrador.nombre)+'" placeholder="Nombre del objeto"></div>';
+  h+='<div id="valores" style="display:flex;flex-direction:column;gap:10px"></div>';
+  h+='<div class="grupo">Catalogación (la voz la dice)</div><div class="lugares" id="lugarIn"></div><div class="lugares" id="clasIn"></div>';
+  h+='<div class="aviso" id="avisoGlobal"></div><div class="fila"><button class="boton grande" id="guardarObj">Guardar</button></div>';
+  if(o) h+='<button class="boton peligro" id="borrarObj">Borrar este objeto</button>';
+  h+='<div class="tarjeta"><div class="grupo" style="margin:0">Campos de esta colección</div><div class="chips" id="chipsCampos"></div><p class="aviso" id="avisoCampos"></p>';
+  h+='<div class="grupo" style="margin:0">Catalogación de esta colección</div><div id="catalogacion" style="display:flex;flex-direction:column;gap:6px"></div><button class="mas" id="masCatalogacion">+ catalogación</button><p class="aviso">'+(libre()?'Todas las opciones disponibles.':'Gratis: '+LIMITES.donde+' de «¿Dónde va?» y '+LIMITES.que+' de «¿Qué es?», las que usted elija. Más opciones y las propias son de la versión completa.')+'</p></div>';
+  $('cuerpo').innerHTML=h;
+
+  var pintaFotos=function(){$('fotos').innerHTML=borrador.fotos.map(function(f,i){return '<div style="position:relative"><img src="'+f+'" alt="Foto '+(i+1)+'" style="width:72px;height:90px;object-fit:cover;border-radius:8px"><button class="boton peligro" data-f="'+i+'" style="position:absolute;top:2px;right:2px;padding:0 6px;background:var(--papel)" aria-label="Quitar foto '+(i+1)+'">×</button></div>';}).join('');
+    $('fotos').querySelectorAll('button').forEach(function(b){b.onclick=function(){borrador.fotos.splice(+b.getAttribute('data-f'),1);pintaFotos();};});};
+  var pintaValores=function(){
+    $('valores').innerHTML=c.campos.map(function(k,i){return '<div class="campo"><label for="v'+i+'">'+esc(k)+'</label><input id="v'+i+'" data-k="'+esc(k)+'" value="'+esc((borrador.campos||{})[k]||'')+'"></div>';}).join('');
+    $('lugarIn').innerHTML=c.niveles.map(function(n,i){return '<div class="campo"><label for="l'+i+'">'+esc(n)+'</label><input id="l'+i+'" inputmode="text" value="'+esc((borrador.lugar||[])[i]||'')+'"></div>';}).join('');
+    $('clasIn').innerHTML=(c.clasif||[]).map(function(k,i){
+      var v=(borrador.clasif||{})[k]||'', fijos=CLASIFICACIONES[k];
+      if(fijos) return '<div class="campo"><label for="q'+i+'">'+esc(k)+'</label><select id="q'+i+'" data-k="'+esc(k)+'"><option value="">—</option>'+fijos.map(function(f){return '<option'+(f===v?' selected':'')+'>'+esc(f)+'</option>';}).join('')+'</select></div>';
+      var usados=c.objetos.map(function(x){return (x.clasif||{})[k];}).filter(function(x,j,a){return x&&a.indexOf(x)===j;});   // sugiere los valores ya usados para escribirlos igual
+      return '<div class="campo"><label for="q'+i+'">'+esc(k)+'</label><input id="q'+i+'" data-k="'+esc(k)+'" list="dq'+i+'" value="'+esc(v)+'"><datalist id="dq'+i+'">'+usados.map(function(x){return '<option value="'+esc(x)+'">';}).join('')+'</datalist></div>';
+    }).join('');
+  };
+  var leer=function(){borrador.nombre=$('nombre').value.trim(); $('valores').querySelectorAll('input').forEach(function(x){borrador.campos[x.getAttribute('data-k')]=x.value.trim();}); borrador.lugar=c.niveles.map(function(n,i){var x=$('l'+i);return x?x.value.trim():'';}); borrador.clasif={}; $('clasIn').querySelectorAll('[data-k]').forEach(function(x){if(x.value.trim())borrador.clasif[x.getAttribute('data-k')]=x.value.trim();});};
+  var pintaCampos=function(){
+    var h2='';
+    Object.keys(CATALOGO).forEach(function(g){var ks=CATALOGO[g].filter(function(k){return campoAplica(c,k);}); if(ks.length) h2+='<span class="etq" style="width:100%;margin:4px 0 0">'+esc(g)+'</span>'; ks.forEach(function(k){
+      var on=c.campos.indexOf(k)>=0, lock=!libre()&&!on&&c.campos.length>=LIMITES.campos;
+      h2+='<button aria-pressed="'+on+'" class="'+(lock?'bloqueada':'')+'" data-k="'+esc(k)+'">'+(on?'✓ ':'+ ')+esc(k)+(lock?' 🔒':'')+'</button>';
+    });});
+    h2+='<button data-propio="1" class="'+(libre()?'':'bloqueada')+'">+ campo propio'+(libre()?'':' 🔒')+'</button>';
+    $('chipsCampos').innerHTML=h2;
+    $('avisoCampos').textContent=libre()?'Todos los campos disponibles.':'Gratis: el nombre y '+LIMITES.campos+' campos ('+c.campos.length+' de '+LIMITES.campos+'). Quite uno para elegir otro.';
+    $('chipsCampos').querySelectorAll('button').forEach(function(b){b.onclick=function(){
+      leer();
+      if(b.getAttribute('data-propio')){ if(!libre()) return ofrecerPago('Crear campos propios'); pedirTexto('Nombre del campo propio',function(t){if(t&&c.campos.indexOf(t)<0){c.campos.push(t);guardar();pintaCampos();pintaValores();}}); return; }
+      var k=b.getAttribute('data-k'), i=c.campos.indexOf(k);
+      if(i>=0){c.campos.splice(i,1);} else { if(!libre()&&c.campos.length>=LIMITES.campos) return ofrecerPago('Usar más de '+LIMITES.campos+' campos'); c.campos.push(k);} guardar(); pintaCampos(); pintaValores();
+    };});
+  };
+  var pintaCatalogacion=function(){
+    var fila=function(grupo,n,i){return '<div class="nivel"><span>'+(grupo==='donde'?(i+1):'•')+'</span><span>'+esc(n)+' <small style="color:var(--suave)">'+(grupo==='donde'?'¿Dónde va?':'¿Qué es?')+'</small></span><button class="boton sec" data-g="'+grupo+'" data-i="'+i+'">Quitar</button></div>';};
+    var filas=c.niveles.map(function(n,i){return fila('donde',n,i);}).concat((c.clasif||[]).map(function(n,i){return fila('que',n,i);}));
+    $('catalogacion').innerHTML=filas.join('')||'<p class="aviso">Sin catalogación. Toque «+ catalogación» para que la voz diga dónde va cada objeto o qué es.</p>';
+    $('catalogacion').querySelectorAll('button').forEach(function(b){b.onclick=function(){
+      leer(); var g=b.getAttribute('data-g'), i=+b.getAttribute('data-i'), nom=g==='donde'?c.niveles[i]:c.clasif[i];
+      var conDato=c.objetos.filter(function(x){return g==='donde'?(x.lugar||[])[i]:(x.clasif||{})[nom];}).length;
+      var quitar=function(){
+        if(g==='donde'){c.niveles.splice(i,1);c.objetos.forEach(function(x){if(x.lugar)x.lugar.splice(i,1);});borrador.lugar.splice(i,1);}
+        else {c.clasif.splice(i,1);c.objetos.forEach(function(x){if(x.clasif)delete x.clasif[nom];});delete borrador.clasif[nom];}
+        guardar();pintaCatalogacion();pintaValores();
+      };
+      if(conDato) confirmar('¿Quitar «'+nom+'»? Se borrará ese dato de '+conDato+(conDato===1?' objeto.':' objetos.'),quitar); else quitar();
+    };});
+  };
+  $('masCatalogacion').onclick=function(){leer(); elegirCatalogacion(c,function(){guardar();pintaCatalogacion();pintaValores();});};
+  $('foto').onchange=function(ev){
+    var fs=[].slice.call(ev.target.files||[]); if(!fs.length) return;
+    if(!libre()){fs=fs.slice(0,1); borrador.fotos=[];}
+    fs.forEach(function(f){reducir(f,function(url){if(url){borrador.fotos.push(url);pintaFotos();}});});
+    ev.target.value='';
+  };
+  $('guardarObj').onclick=function(){
+    leer(); if(!borrador.nombre){aviso('Escriba el nombre del objeto.','pago');$('nombre').focus();return;}
+    if(o){var i=c.objetos.indexOf(o);c.objetos[i]=borrador;} else {borrador.alta=Date.now();c.objetos.unshift(borrador);}
+    if(guardar()){aviso('Guardado: '+borrador.nombre+' → '+dice(borrador,c),'bien'); if(!o){borrador={id:uid(),nombre:'',campos:{},lugar:borrador.lugar.slice(),clasif:JSON.parse(JSON.stringify(borrador.clasif)),fotos:[]};$('nombre').value='';pintaFotos();pintaValores();$('nombre').focus();}}   // conserva la catalogación para registrar seguido los de un mismo lugar
+  };
+  if(o) $('borrarObj').onclick=function(){confirmar('¿Borrar «'+o.nombre+'»?',function(){c.objetos.splice(c.objetos.indexOf(o),1);guardar();ir('lista');});};
+  if(!o){
+    /* Dictar objetos: gratis, un objeto por dictado; de pago, varios seguidos con «siguiente objeto». */
+    var dictados=[];
+    var ejemploPalabras=function(){
+      var e=[]; if(c.niveles[0]) e.push('«'+c.niveles[0].toLowerCase()+' …»'); if(c.niveles[1]) e.push('«primer '+c.niveles[1].toLowerCase()+'»'); if(c.clasif&&c.clasif[0]) e.push('«'+c.clasif[0].toLowerCase()+' …»'); if(c.campos[0]) e.push('«'+c.campos[0].toLowerCase()+' …»');
+      return e.join(', ');
+    };
+    $('ayudaDict').textContent='Diga el nombre del objeto y después su catalogación'+(ejemploPalabras()?', por ejemplo '+ejemploPalabras():'')+'. También sirven «primer orden …», «segundo orden …», «clasificación …» y «en el …» con un valor que ya usó. Lo que dice se queda puesto para los objetos siguientes hasta que lo cambie. Para pasar a otro objeto diga «siguiente objeto».'+(libre()?'':' Versión gratis: un objeto por dictado.');
+    var pintaDict=function(){
+      dictados=leerDictadoObjetos($('txtObj').value,c);
+      var cols=['Nombre'].concat(c.niveles,c.clasif||[],c.campos);
+      var celda=function(v,her){return '<td'+(her?' style="color:var(--suave);font-style:italic" title="Se quedó puesto"':'')+'>'+esc(v||'')+'</td>';};
+      $('prevObj').innerHTML=dictados.length?'<table><tr>'+cols.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr>'+dictados.map(function(d){
+        return '<tr><td><b>'+esc(d.nombre)+'</b></td>'+c.niveles.map(function(n,i){return celda(d.lugar[i],d.heredado['donde:'+n]);}).join('')+(c.clasif||[]).map(function(k){return celda(d.clasif[k],d.heredado['que:'+k]);}).join('')+c.campos.map(function(k){return celda(d.campos[k],d.heredado['campo:'+k]);}).join('')+'</tr>';
+      }).join('')+'</table><p style="margin:6px 0 0">En gris y cursiva: lo que se quedó puesto del objeto anterior.</p>':'<p>Aquí verá cada objeto antes de guardarlo.</p>';
+      var n=dictados.length, varios=n>1&&!libre();
+      $('botonesDict').innerHTML=n?'<button class="boton" id="guardarDict">'+(libre()?'Guardar '+(n===1?'el objeto':'los '+n+' objetos'):(n===1?'Guardar el objeto':'Guardar solo el primero'))+'</button>'+(varios?'<button class="opcion bloqueada" id="guardarVarios"><span>Guardar los '+n+'</span>'+candado()+'</button>':''):'';
+      if($('guardarDict')) $('guardarDict').onclick=function(){guardarDictados(libre()?dictados:dictados.slice(0,1));};
+      if($('guardarVarios')) $('guardarVarios').onclick=function(){ofrecerPago('Dictar varios objetos seguidos');};
+    };
+    var guardarDictados=function(lista){
+      var t=Date.now();
+      lista.slice().reverse().forEach(function(d,k){c.objetos.unshift({id:uid(),alta:t+lista.length-k,nombre:d.nombre,campos:d.campos,lugar:d.lugar,clasif:d.clasif,fotos:[]});});
+      if(guardar()){detenerMic(); $('txtObj').value=''; pintaDict(); aviso(lista.length===1?'Guardado: '+lista[0].nombre+' → '+dice(c.objetos[0],c):'Se guardaron '+lista.length+' objetos. Véalos en Colección.','bien');}
+    };
+    $('txtObj').oninput=pintaDict;
+    $('mic').onclick=function(){encenderMic({caja:'txtObj',alCambiar:pintaDict});};   // cada pausa es un renglón y cierra el valor
+    pintaDict();
+  }
+  pintaFotos(); pintaValores(); pintaCampos(); pintaCatalogacion();
+}
+/* Hoja del botón «+ catalogación»: dos grupos y una opción propia en cada uno. Lo de pago lleva candado y abre la ventana de pago. */
+function elegirCatalogacion(c,alElegir){
+  c.clasif=c.clasif||[];
+  var listaDe=function(grupo){return grupo==='donde'?c.niveles:c.clasif;};
+  var opcion=function(grupo,n){var lock=!caben(grupo,listaDe(grupo));return '<button class="opcion'+(lock?' bloqueada':'')+'" data-g="'+grupo+'" data-n="'+esc(n)+'"><span>'+esc(n)+'</span>'+(lock?candado():'')+'</button>';};
+  var propia=function(grupo){return '<button class="opcion'+(libre()?'':' bloqueada')+'" data-g="'+grupo+'" data-propia="1"><span>+ Escribir una propia</span>'+(libre()?'':candado())+'</button>';};
+  var libres=function(lista,usadas){return lista.filter(function(n){return usadas.indexOf(n)<0;});};
+  $('capa').innerHTML='<div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="tCat"><div class="hoja"><h2 id="tCat">Agregar catalogación</h2><p class="aviso">La voz dice primero dónde va y después qué es.</p>'
+    +'<div class="grupo">¿Dónde va?</div>'+libres(UBICACIONES,c.niveles).map(function(n){return opcion('donde',n);}).join('')+propia('donde')
+    +'<div class="grupo">¿Qué es?</div>'+libres(Object.keys(CLASIFICACIONES),c.clasif).map(function(n){return opcion('que',n);}).join('')+propia('que')
+    +'<button class="boton sec" id="cerrarCat">Cerrar</button></div></div>';
+  $('cerrarCat').onclick=function(){$('capa').innerHTML='';};
+  var agregar=function(grupo,n){
+    var lista=listaDe(grupo);
+    if(!n||c.niveles.indexOf(n)>=0||c.clasif.indexOf(n)>=0) return aviso('«'+n+'» ya está en esta colección.','pago');
+    lista.push(n); alElegir();
+  };
+  $('capa').querySelectorAll('[data-g]').forEach(function(b){b.onclick=function(){
+    var g=b.getAttribute('data-g'), n=b.getAttribute('data-n');
+    if(b.getAttribute('data-propia')){ if(!libre()) return ofrecerPago('Escribir una catalogación propia'); return pedirTexto(g==='donde'?'¿Dónde va? Nombre propio':'¿Qué es? Nombre propio',function(t){if(t)agregar(g,t);}); }
+    if(!caben(g,listaDe(g))) return ofrecerPago(g==='donde'?'Más de '+LIMITES.donde+' catalogaciones de «¿Dónde va?»':'Más de '+LIMITES.que+' catalogación de «¿Qué es?»');
+    $('capa').innerHTML=''; agregar(g,n);
+  };});
+}
+function reducir(file,cb){
+  var r=new FileReader(); r.onload=function(){var img=new Image(); img.onload=function(){var m=360,s=Math.min(1,m/Math.max(img.width,img.height)),cv=document.createElement('canvas');cv.width=Math.round(img.width*s);cv.height=Math.round(img.height*s);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);cb(cv.toDataURL('image/jpeg',.72));}; img.onerror=function(){cb(null);}; img.src=r.result;}; r.readAsDataURL(file);
+}
+function pedirTexto(titulo,cb){
+  $('capa').innerHTML='<div class="dialogo" role="dialog" aria-modal="true"><div class="hoja"><h2>'+esc(titulo)+'</h2><input class="entrada" id="txtD"><div class="fila"><button class="boton sec" id="nD">Cancelar</button><button class="boton" id="sD">Aceptar</button></div></div></div>';
+  $('txtD').focus(); $('nD').onclick=function(){$('capa').innerHTML='';}; $('sD').onclick=function(){var t=$('txtD').value.trim();$('capa').innerHTML='';cb(t);};
+}
+function confirmar(texto,cb,boton){
+  $('capa').innerHTML='<div class="dialogo" role="dialog" aria-modal="true"><div class="hoja"><h2>'+esc(texto)+'</h2><div class="fila"><button class="boton sec" id="nC">Cancelar</button><button class="boton" id="sC" style="background:var(--error)">'+esc(boton||'Sí, borrar')+'</button></div></div></div>';
+  $('nC').onclick=function(){$('capa').innerHTML='';}; $('sC').onclick=function(){$('capa').innerHTML='';cb();};
+}
+
+/* ---- Dictar objetos: convierte lo dictado en objetos con su catalogación ----
+   Palabras clave: el nombre de una catalogación o de un campo seguido de su valor («cajón dos», «categoría ropa interior», «talla mediana»);
+   un ordinal antes de una catalogación de «¿Dónde va?» («primer cajón» = cajón 1); «primer orden …», «segundo orden …» (niveles de «¿Dónde va?» por su orden);
+   «clasificación …» (la primera de «¿Qué es?»); «en el …» + un valor ya usado; «siguiente objeto» separa objetos.
+   Lo demás es el nombre del objeto. Cada valor se queda puesto para los objetos siguientes hasta que se cambie. Una pausa, un punto o una coma cierran el valor. */
+var SOBRAN={en:1,el:1,la:1,los:1,las:1,de:1,del:1,al:1,con:1,y:1,un:1,una:1};   // se quitan al principio y al final de un nombre o valor dictado («en el», «de»), no letras sueltas como la «A» de «Plan A»
+var ORDINALES={primer:1,primero:1,primera:1,segundo:2,segunda:2,tercer:3,tercero:3,tercera:3,cuarto:4,cuarta:4,quinto:5,quinta:5,sexto:6,sexta:6,septimo:7,septima:7,octavo:8,octava:8,noveno:9,novena:9,decimo:10,decima:10};
+function leerDictadoObjetos(texto,c){
+  var cl=c.clasif||[], claves=[];
+  var clave=function(tipo,nombre,i){
+    var alias=[nombre].concat(nombre.indexOf(' o ')>0?nombre.split(' o '):[]);
+    alias.forEach(function(a){claves.push({tipo:tipo,nombre:nombre,i:i,p:palabras(a)});});
+  };
+  c.niveles.forEach(function(n,i){clave('donde',n,i);}); cl.forEach(function(n){clave('que',n);}); c.campos.forEach(function(n){clave('campo',n);});
+  claves.sort(function(a,b){return b.p.length-a.p.length;});
+  var conocidos=[];   // valores ya usados en la colección, para «en el ropero»
+  var conocer=function(k,v){var p=palabras(v); if(p.length&&!conocidos.some(function(x){return x.k.nombre===k.nombre&&x.p.join(' ')===p.join(' ');})) conocidos.push({k:k,p:p,v:v});};
+  claves.forEach(function(k){
+    c.objetos.forEach(function(o){var v=k.tipo==='donde'?(o.lugar||[])[k.i]:k.tipo==='que'?(o.clasif||{})[k.nombre]:(o.campos||{})[k.nombre]; if(v) conocer(k,v);});
+    if(k.tipo==='que') (CLASIFICACIONES[k.nombre]||[]).forEach(function(v){conocer(k,v);});
+  });
+  conocidos.sort(function(a,b){return b.p.length-a.p.length;});
+  var t=[]; String(texto).replace(/[\n.,;:]+/g,' | ').split(/\s+/).filter(Boolean).forEach(function(w){if(w==='|'){t.push({c:true});return;} var n=palabras(w); if(n.length) t.push({o:w.replace(/^[¿¡"«]+|[?!"»]+$/g,''),n:n.join(' ')});});
+  var igual=function(i,p){for(var j=0;j<p.length;j++){if(!t[i+j]||t[i+j].c||t[i+j].n!==p[j]) return false;} return true;};
+  var fijo={}, objetos=[], actual=null, nombre=[], captura=null;
+  var keyId=function(k){return k.tipo+':'+k.nombre;};
+  var poner=function(k,valor){
+    if(!valor) return;
+    if(k.tipo==='donde'){var pn=palabras(valor); if(pn.length===1&&/^\d+$/.test(pn[0])) valor=pn[0];}
+    if(k.tipo==='que'){var fijos=CLASIFICACIONES[k.nombre]; if(fijos){var m=fijos.filter(function(f){return palabras(f).join(' ')===palabras(valor).join(' ');})[0]; if(m) valor=m;}}
+    fijo[keyId(k)]={k:k,v:valor}; if(actual) actual.propios[keyId(k)]=true; conocer(k,valor);
+  };
+  var cerrarCaptura=function(){if(captura){var b=captura.b; while(b.length&&SOBRAN[b[0].n]) b.shift(); while(b.length&&SOBRAN[b[b.length-1].n]) b.pop(); poner(captura.k,b.map(function(x){return x.o;}).join(' ')); captura=null;}};
+  var nuevoObjeto=function(){actual={propios:{}}; nombre=[];};
+  var cerrarObjeto=function(){
+    cerrarCaptura();
+    while(nombre.length&&SOBRAN[nombre[0].n]) nombre.shift(); while(nombre.length&&SOBRAN[nombre[nombre.length-1].n]) nombre.pop();
+    if(nombre.length){
+      var o={nombre:'',lugar:c.niveles.map(function(){return '';}),clasif:{},campos:{},heredado:{}}, txt=nombre.map(function(x){return x.o;}).join(' ');
+      o.nombre=txt.charAt(0).toUpperCase()+txt.slice(1);
+      Object.keys(fijo).forEach(function(id){var f=fijo[id]; if(f.k.tipo==='donde') o.lugar[f.k.i]=f.v; else if(f.k.tipo==='que') o.clasif[f.k.nombre]=f.v; else o.campos[f.k.nombre]=f.v; if(!actual.propios[id]) o.heredado[id]=true;});
+      objetos.push(o);
+    }
+    nuevoObjeto();
+  };
+  nuevoObjeto();
+  for(var i=0;i<t.length;){
+    if(t[i].c){cerrarCaptura();i++;continue;}
+    if(t[i].n==='siguiente'&&t[i+1]&&t[i+1].n==='objeto'){cerrarObjeto();i+=2;continue;}
+    var ord=ORDINALES[t[i].n], k=null, j;
+    if(ord&&t[i+1]&&t[i+1].n==='orden'){k=claves.filter(function(x){return x.tipo==='donde'&&x.i===ord-1;})[0]; if(k){cerrarCaptura();captura={k:k,b:[]};i+=2;continue;}}
+    if(ord){for(j=0;j<claves.length;j++){if(claves[j].tipo==='donde'&&igual(i+1,claves[j].p)){k=claves[j];break;}} if(k){cerrarCaptura();poner(k,String(ord));i+=1+k.p.length;continue;}}
+    if(t[i].n==='clasificacion'&&cl.length){cerrarCaptura();captura={k:claves.filter(function(x){return x.tipo==='que'&&x.nombre===cl[0];})[0],b:[]};i++;continue;}
+    if(t[i].n==='en'){var a=i+1; if(t[a]&&!t[a].c&&/^(el|la|los|las)$/.test(t[a].n)) a++; var cv=null; for(j=0;j<conocidos.length;j++){if(igual(a,conocidos[j].p)){cv=conocidos[j];break;}} if(cv){cerrarCaptura();poner(cv.k,cv.v);i=a+cv.p.length;continue;}}
+    for(j=0;j<claves.length;j++){if(igual(i,claves[j].p)){k=claves[j];break;}}
+    if(k){cerrarCaptura();captura={k:k,b:[]};i+=k.p.length;continue;}
+    if(captura){
+      captura.b.push(t[i]); i++;
+      var b=captura.b.filter(function(x){return !SOBRAN[x.n];});
+      if(captura.k.tipo==='donde'&&b.length===1&&/^\d+$/.test(b[0].n)) cerrarCaptura();   // «cajón dos boxers»: el número cierra el valor
+      else if(captura.k.tipo==='que'&&(CLASIFICACIONES[captura.k.nombre]||[]).some(function(f){return palabras(f).join(' ')===b.map(function(x){return x.n;}).join(' ');})) cerrarCaptura();   // «color azul»: un valor de la lista cierra el valor
+      continue;
+    }
+    nombre.push(t[i]); i++;
+  }
+  cerrarObjeto();
+  return objetos;
+}
+/* ---- Motor de identificación por voz ----
+   Reconoce nombres dictados de corrido, con errores de pronunciación, nombres incompletos, números dichos con letra,
+   objetos repetidos y pistas dichas después del nombre («… de tal marca», «… con tal color»), que se buscan en los campos
+   y la catalogación de cada objeto. Nunca inventa: lo que no se parece a nada sale como «no está en la colección». */
+var motorIdentificacion=(function(){
+  var SEPARADORES=new Set(['y','luego','siguiente','otro']);
+  var CONECTORES=new Set('el la los las un una unos unas de del al a y e o u en con por para que se su sus lo le mi tu es no ni mas como sin sobre entre'.split(' '));
+  var ANUNCIOS=new Set('de del con por marca color talla autor autora serie coleccion la el los las'.split(' '));
+  var ARTICULOS=new Set(['la','el','los','las']);
+  var SIMILITUD_MINIMA=0.72, PESO_DESCONOCIDA=5, UMBRAL_CLARO=0.7, UMBRAL_DUDA=0.45, MARGEN=0.1, MAX_PALABRAS=16,
+      COSTO_POR_NOMBRE=1.5, UMBRAL_CON_PISTA=0.3, AYUDA_DE_PISTA=0.15, VALOR_PISTA=8, MAX_PISTA=6, BONO_EXACTO=0.05;
+  // Clave de sonido en español: iguala b/v, c/s/z, qu/k, ll/y, h muda y letras dobles.
+  function fonetica(p){return p.replace(/ch/g,'x').replace(/h/g,'').replace(/qu/g,'k').replace(/g(?=[ei])/g,'j').replace(/gu(?=[ei])/g,'g').replace(/c(?=[ei])/g,'s').replace(/c/g,'k').replace(/z/g,'s').replace(/v/g,'b').replace(/ll/g,'y').replace(/w/g,'u').replace(/y$/,'i').replace(/(.)\1+/g,'$1');}
+  function distancia(a,b){var previa=[],j,i;for(j=0;j<=b.length;j++)previa.push(j);for(i=1;i<=a.length;i++){var fila=[i];for(j=1;j<=b.length;j++)fila[j]=Math.min(previa[j]+1,fila[j-1]+1,previa[j-1]+(a[i-1]===b[j-1]?0:1));previa=fila;}return previa[b.length];}
+  function crear(objetos){
+    var items=objetos.map(function(o){
+      var lista=palabras(o.nombre), pistas=[];
+      Object.keys(o.campos||{}).forEach(function(k){pistas.push(o.campos[k]);}); Object.keys(o.clasif||{}).forEach(function(k){pistas.push(o.clasif[k]);});
+      return {o:o,clave:lista.join(' '),unicas:new Set(lista),peso:0,pistas:palabras(pistas.join(' ')).filter(function(p){return p.length>1&&!CONECTORES.has(p);})};
+    });
+    var VOC=new Map(), VOC_PISTAS=new Map(), memoP=new Map(), memoF=new Map(), memoPi=new Map();
+    items.forEach(function(b,i){b.unicas.forEach(function(p){if(!VOC.has(p))VOC.set(p,{fon:fonetica(p),items:[],peso:0});VOC.get(p).items.push(i);});
+      b.pistas.forEach(function(p){if(!VOC_PISTAS.has(p))VOC_PISTAS.set(p,{fon:fonetica(p),items:new Set()});VOC_PISTAS.get(p).items.add(i);});});
+    VOC.forEach(function(v){v.peso=Math.log(1+items.length/v.items.length);});   // las palabras raras pesan más
+    items.forEach(function(b){b.unicas.forEach(function(p){b.peso+=VOC.get(p).peso;});});
+    var LIMITE_COMUN=Math.max(3,items.length*0.05);   // en colecciones chicas, una palabra en pocos objetos ya distingue
+    var largos=items.map(function(b){return b.clave;}).filter(function(c){return c.split(' ').length>MAX_PALABRAS;});
+    var MAX_LARGO=Math.max.apply(null,[MAX_PALABRAS].concat(largos.map(function(c){return c.split(' ').length;})));
+    function parecidas(p){
+      if(memoP.has(p)) return memoP.get(p);
+      var lista=VOC.has(p)?[[p,1]]:[];
+      if(p.length>3&&!/\d/.test(p)){var f=fonetica(p);VOC.forEach(function(v,q){if(q===p||q.length<=3||Math.abs(v.fon.length-f.length)>3)return;var s=v.fon===f?0.95:1-distancia(f,v.fon)/Math.max(f.length,v.fon.length);if(s>=SIMILITUD_MINIMA)lista.push([q,Math.min(s,0.95)]);});}
+      lista.sort(function(a,b){return b[1]-a[1];}); memoP.set(p,lista); return lista;
+    }
+    // Puntúa una frase contra los nombres: q combina cuánto de lo dicho está en el nombre y cuánto del nombre se dijo.
+    function candidatos(lista){
+      var clave=lista.join(' '); if(memoF.has(clave)) return memoF.get(clave);
+      var info=lista.map(function(p){var pares=parecidas(p),mejor=pares.length?VOC.get(pares[0][0]):null;return {pares:pares,peso:mejor?mejor.peso:PESO_DESCONOCIDA,rara:!!mejor&&mejor.items.length<=LIMITE_COMUN&&!CONECTORES.has(p)};});
+      var total=info.reduce(function(s,t){return s+t.peso;},0), posibles=new Set();
+      info.filter(function(t){return t.rara;}).forEach(function(t){t.pares.forEach(function(par){VOC.get(par[0]).items.forEach(function(i){posibles.add(i);});});});
+      if(!posibles.size) items.forEach(function(b,i){if(b.clave===clave)posibles.add(i);});   // solo palabras comunes: vale si es el nombre completo
+      var cands=[];
+      posibles.forEach(function(i){
+        var b=items[i],tocadas=new Set(),acierto=0,raras=0,exacto=true;
+        info.forEach(function(t,k){var par=t.pares.filter(function(x){return b.unicas.has(x[0]);})[0];
+          if(par){acierto+=t.peso*par[1];if(t.rara&&!tocadas.has(par[0]))raras++;tocadas.add(par[0]);}
+          if(!CONECTORES.has(lista[k])&&!(par&&par[1]===1))exacto=false;});
+        var cubierto=0; tocadas.forEach(function(q){cubierto+=VOC.get(q).peso;});
+        cands.push({i:i,q:(acierto/total)*(0.75+0.25*cubierto/b.peso),exacto:exacto,firme:raras>=2||tocadas.size===b.unicas.size});
+      });
+      cands.sort(function(a,b){return (b.q+(b.exacto?BONO_EXACTO:0))-(a.q+(a.exacto?BONO_EXACTO:0))||items[a.i].clave.localeCompare(items[b.i].clave);});
+      var r={peso:total,cands:cands}; memoF.set(clave,r); return r;
+    }
+    function itemsDePista(p){
+      if(memoPi.has(p)) return memoPi.get(p);
+      var res=new Set(), f=fonetica(p);
+      VOC_PISTAS.forEach(function(v,q){var igual=q===p||(p.length>3&&q.length>3&&Math.abs(v.fon.length-f.length)<=3&&1-distancia(f,v.fon)/Math.max(f.length,v.fon.length)>=SIMILITUD_MINIMA);if(igual)v.items.forEach(function(i){res.add(i);});});
+      memoPi.set(p,res); return res;
+    }
+    // Pistas que empiezan en la pieza j: solo cuentan si las anuncia «de», «con», «por»…, sin pausa entre el anuncio y el valor.
+    function pistasDesde(piezas,j){
+      if(j>=piezas.length||piezas[j].separador) return [];
+      var c=j; while(c<piezas.length&&c-j<4&&ANUNCIOS.has(piezas[c].p)&&!(c>j&&piezas[c].trasSigno))c++;
+      var anunciada=piezas.slice(j,c).some(function(x){return !ARTICULOS.has(x.p);})&&c<piezas.length&&!piezas[c].trasSigno, opciones=[];
+      if(!anunciada) return [];
+      for(var fin=c+1;fin<=Math.min(piezas.length,c+MAX_PISTA);fin++){
+        var ultima=piezas[fin-1]; if(ultima.separador||(fin-1>c&&ultima.trasSigno)) break; if(CONECTORES.has(ultima.p)) continue;
+        var utiles=piezas.slice(c,fin).map(function(x){return x.p;}).filter(function(p){return !CONECTORES.has(p);}), conj=null;
+        utiles.forEach(function(p){var suyos=itemsDePista(p);conj=conj?new Set(Array.from(conj).filter(function(i){return suyos.has(i);})):suyos;});
+        if(conj&&conj.size) opciones.push({fin:fin,items:conj,n:utiles.length,texto:piezas.slice(c,fin).map(function(x){return x.crudo;}).filter(Boolean).join(' ')});
+      }
+      return opciones;
+    }
+    // Cada palabra recuerda si venía tras coma o punto (trasSigno), si abre renglón (cada pausa del micrófono) y si es separadora.
+    function piezasDe(texto){
+      var piezas=[], trasSigno=false, trasSalto=false;
+      (texto.match(/[,.;:\n]+|[^\s,.;:]+/g)||[]).forEach(function(trozo){
+        if(/^[,.;:\n]/.test(trozo)){trasSigno=true;trasSalto=trasSalto||trozo.indexOf('\n')>=0;return;}
+        palabras(trozo).forEach(function(p,k){piezas.push({p:p,crudo:k?'':trozo,trasSigno:trasSigno&&!k,trasSalto:trasSalto&&!k,separador:SEPARADORES.has(p)});trasSigno=trasSalto=false;});
+      });
+      for(var i=0;i+1<piezas.length;i++){var a=piezas[i],b=piezas[i+1];   // «des ocupado» → «desocupado» si así está en un nombre
+        if(b.trasSigno||(parecidas(a.p).length&&parecidas(b.p).length)||!VOC.has(a.p+b.p)) continue;
+        piezas.splice(i,2,{p:a.p+b.p,crudo:(a.crudo+' '+b.crudo).trim(),trasSigno:a.trasSigno,trasSalto:a.trasSalto,separador:false});}
+      return piezas;
+    }
+    function recortar(cands){var claves=new Set(cands.slice(0,3).map(function(c){return items[c.i].clave;}));return cands.filter(function(c,k){return k<3||claves.has(items[c.i].clave);});}
+    function repiteNombre(tramo,b){   // el mismo nombre dicho dos veces seguidas son dos objetos
+      var en=new Map(),dichas=new Map(); b.clave.split(' ').forEach(function(p){en.set(p,(en.get(p)||0)+1);});
+      tramo.forEach(function(x){if(en.has(x.p)&&!CONECTORES.has(x.p))dichas.set(x.p,(dichas.get(x.p)||0)+1);});
+      return Array.from(dichas).some(function(d){return d[1]>en.get(d[0]);});
+    }
+    // Parte el dictado en nombres buscando la combinación que mejor lo cubre; después de cada nombre puede venir su pista.
+    function partir(piezas){
+      var n=piezas.length, valor=[], paso=[], i, j; for(i=0;i<=n;i++) valor.push(0);
+      var pistas=piezas.map(function(_,k){return pistasDesde(piezas,k);});
+      for(i=n-1;i>=0;i--){
+        valor[i]=valor[i+1]; paso[i]={fin:i+1,cands:null,nota:''}; var signos=0;
+        var probar=function(fin,cands,extra,nota){var t=extra+valor[fin];if(t>valor[i]){valor[i]=t;paso[i]={fin:fin,cands:recortar(cands),nota:nota};}};
+        for(j=i+1;j<=Math.min(n,i+MAX_LARGO);j++){
+          if(j-1>i&&piezas[j-1].trasSalto) break;
+          if(j-1>i&&piezas[j-1].trasSigno) signos++;
+          var tramo=piezas.slice(i,j);
+          if(j-i>MAX_PALABRAS){var inicio=tramo.map(function(x){return x.p;}).join(' ')+' ';if(!largos.some(function(c){return (c+' ').indexOf(inicio)===0;}))break;}
+          var rc=candidatos(tramo.map(function(x){return x.p;})), peso=rc.peso, cands=rc.cands;
+          if(!cands.length) continue;
+          if(repiteNombre(tramo,items[cands[0].i])) continue;
+          if((tramo[0].separador||tramo[tramo.length-1].separador)&&cands[0].q<0.95) continue;
+          if(tramo.every(function(x){return ANUNCIOS.has(x.p)||CONECTORES.has(x.p);})&&cands[0].q<0.95) continue;
+          var sg=signos, base=function(q){return peso*q*q*Math.pow(0.95,sg)-COSTO_POR_NOMBRE;};
+          var parecido=cands[0].q>=UMBRAL_DUDA, dicho=' '+tramo.map(function(x){return x.p;}).join(' ')+' ';
+          var literal=tramo.filter(function(x){return !CONECTORES.has(x.p);}).length>=2&&cands.some(function(c){return (' '+items[c.i].clave+' ').indexOf(dicho)>=0;});
+          if(parecido) probar(j,cands,literal?peso-COSTO_POR_NOMBRE:base(cands[0].q),'');
+          (j<n?pistas[j]:[]).forEach(function(pista){
+            var completo=candidatos(piezas.slice(i,pista.fin).map(function(x){return x.p;})).cands[0];
+            if(completo&&completo.q>=UMBRAL_CLARO&&completo.q>=cands[0].q) return;   // esas palabras son parte del nombre
+            var suyos=cands.filter(function(c){return pista.items.has(c.i)&&c.q>=UMBRAL_CON_PISTA;});
+            if(suyos.length){var af=suyos.map(function(c){return {i:c.i,q:Math.min(1,c.q+AYUDA_DE_PISTA),firme:true};});probar(pista.fin,af,base(af[0].q)+VALOR_PISTA*pista.n,'');}
+            else if(parecido) probar(pista.fin,cands,base(cands[0].q)+VALOR_PISTA*pista.n/2,'Dijo «'+pista.texto+'», pero ningún objeto parecido lo tiene.');
+          });
+        }
+      }
+      var segmentos=[], suelto=null, tramoActual=0;
+      for(i=0;i<n;i=paso[i].fin){
+        if(piezas[i].trasSigno){tramoActual++;suelto=null;}
+        var d=piezas.slice(i,paso[i].fin).map(function(x){return x.crudo;}).filter(Boolean).join(' ');
+        if(paso[i].cands){segmentos.push({dicho:d,cands:paso[i].cands,nota:paso[i].nota,tramo:tramoActual});suelto=null;}
+        else if(piezas[i].separador){tramoActual++;suelto=null;}
+        else if(suelto) suelto.dicho+=' '+d;
+        else segmentos.push(suelto={dicho:d,cands:[],nota:'',tramo:tramoActual});
+      }
+      segmentos.forEach(function(s){var v=segmentos.filter(function(x){return x.tramo===s.tramo;});s.solo=v.length===1;s.limpio=v.every(function(x){return x.cands.length;});});
+      return segmentos.filter(function(s){return s.cands.length||!palabras(s.dicho).every(function(p){return CONECTORES.has(p);});});
+    }
+    // Un segmento se vuelve renglón: encontrado, en duda (con los candidatos) o no encontrado.
+    function renglon(s){
+      if(!s.cands.length) return {r:s.dicho,estado:'no'};
+      var lista=s.cands.filter(function(c){return c.q>=s.cands[0].q-0.25;}).map(function(c){return items[c.i].o;});
+      var unicoExacto=s.cands.length>1&&s.cands[0].exacto&&!s.cands[1].exacto;
+      var claro=!s.nota&&s.cands[0].q>=UMBRAL_CLARO&&(s.cands.length<2||s.cands[0].q-s.cands[1].q>=MARGEN||unicoExacto)&&(s.solo||(s.cands[0].firme&&(s.limpio||s.cands[0].exacto)));   // un nombre dicho completo y exacto vale aunque al lado haya algo desconocido
+      return claro?{r:s.dicho,estado:'ok',o:lista[0]}:{r:s.dicho,estado:'duda',c:lista.slice(0,Math.max(3,lista.length)),nota:s.nota};
+    }
+    return function(texto){return partir(piezasDe(String(texto))).map(renglon);};
+  }
+  return {crear:crear};
+})();
+function identificar(texto,c){return motorIdentificacion.crear(c.objetos)(texto);}
+/* ---- Micrófono: un solo dictador para toda la app ----
+   Es el mismo funcionamiento que ya se probó en celulares: escucha de corrido y, como el navegador corta el reconocimiento
+   cuando deja de oír voz, se vuelve a encender solo (con una pausa breve) hasta que la persona lo apaga. Aguanta las pausas.
+   En Android pide solo resultados definitivos (los provisionales llegan duplicados) y quita las repeticiones que hacen
+   algunos celulares. Antes de encender revisa si el lugar donde se abrió la app permite el micrófono, y cada falla se explica
+   con lo que hay que hacer y la salida que siempre funciona: el micrófono del teclado del teléfono. */
+var Reconocedor=window.SpeechRecognition||window.webkitSpeechRecognition, EN_ANDROID=/Android/i.test(navigator.userAgent);
+var SILENCIO_MAXIMO=5*60000, FALLOS_MAXIMOS=4;
+var dictador={quiere:false,activo:false,base:'',desde:0,vistos:0,fallos:0,ultimaVoz:0,reloj:0,motivo:'',caja:'',sep:'\n',alCambiar:null,unaFrase:null};
+var reconocedor=null;
+var TECLADO=' Mientras, toque el cuadro de texto y use el micrófono 🎤 del teclado del teléfono: escribe lo que usted dice.';
+var MENSAJES_MIC={
+  'sin-soporte':'Este navegador no tiene micrófono para apps. Abra la app en Google Chrome.',
+  'inseguro':'El micrófono de la app solo funciona cuando la app se abre desde su dirección de internet (https://…) o ya instalada, no como archivo descargado.',
+  'vista-previa':'La app está abierta dentro de una vista previa que no deja usar el micrófono. Ábrala en Google Chrome.',
+  'not-allowed':'Chrome no tiene permiso para el micrófono. Toque el ícono junto a la dirección › Permisos › Micrófono › Permitir. Si no aparece: Ajustes del teléfono › Apps › Chrome › Permisos › Micrófono.',
+  'service-not-allowed':'El teléfono no deja usar el reconocimiento de voz a Chrome. Revise en Ajustes del teléfono › Apps › Google que el micrófono esté permitido.',
+  'audio-capture':'No se encontró un micrófono libre. Cierre otra app que lo esté usando (llamada, grabadora) y vuelva a intentar.',
+  'network':'El reconocimiento de voz del navegador necesita internet y no hay conexión.',
+  'language-not-supported':'Este teléfono no tiene el reconocimiento de voz en español de México. Agréguelo en Ajustes del teléfono › Google › Voz.',
+  'falla':'El micrófono de la app falló varias veces.',
+  'silencio':'Apagué el micrófono: pasaron 5 minutos sin oír nada.'
+};
+function usoDe(){E.uso=E.uso||{}; E.uso.candados=E.uso.candados||{}; E.uso.mic=E.uso.mic||{frases:0,errores:{}}; return E.uso;}
+function anotarMic(tipo){var m=usoDe().mic; m.errores[tipo]=(m.errores[tipo]||0)+1; guardar();}
+// Lo que impide el micrófono antes de intentarlo: navegador sin reconocimiento, página no segura o vista previa sin permiso.
+function bloqueoMic(){
+  if(!Reconocedor) return 'sin-soporte';
+  if(window.isSecureContext===false) return 'inseguro';
+  try{var pol=document.permissionsPolicy||document.featurePolicy; if(pol&&pol.allowsFeature&&!pol.allowsFeature('microphone')) return 'vista-previa';}catch(e){}
+  return '';
+}
+function estadoDictado(texto,tipo){var el=$('estadoMic'); if(el){el.className='aviso'+(tipo?' '+tipo:''); el.textContent=texto;} else aviso(texto,tipo);}
+function pintarMic(provisional){
+  var b=$('mic'); if(b){b.classList.toggle('activo',dictador.quiere); b.setAttribute('aria-pressed',String(dictador.quiere));}
+  if(dictador.quiere) estadoDictado(provisional?'🔴 Escuchando: '+provisional+'…':'🔴 Micrófono encendido. Puede hacer pausas; sigue escuchando hasta que toque 🎙 otra vez.');
+}
+function arrancarDictado(){
+  clearTimeout(dictador.reloj);
+  if(!dictador.quiere||dictador.activo||document.visibilityState!=='visible') return;
+  try{reconocedor.start();}catch(e){dictador.reloj=setTimeout(arrancarDictado,600);}   // todavía se estaba cerrando la escucha anterior
+}
+function detenerMic(motivo){
+  if(!reconocedor||!dictador.quiere) return;
+  dictador.quiere=false; clearTimeout(dictador.reloj);
+  var caja=$(dictador.caja); if(caja) caja.removeEventListener('input',corregidoAMano);
+  try{if(dictador.activo) reconocedor.stop();}catch(e){}
+  pintarMic();
+  if(motivo){anotarMic(motivo); estadoDictado(MENSAJES_MIC[motivo]+(motivo==='silencio'?'':TECLADO),'pago');}
+  else estadoDictado('Micrófono apagado.');
+}
+// Si se corrige el texto a mano mientras escucha, lo corregido se respeta y lo siguiente se agrega después.
+function corregidoAMano(){if(dictador.activo){dictador.base=$(dictador.caja).value; dictador.desde=dictador.vistos;}}
+function crearReconocedor(){
+  reconocedor=new Reconocedor();
+  reconocedor.lang='es-MX'; reconocedor.continuous=true; reconocedor.interimResults=!EN_ANDROID; reconocedor.maxAlternatives=1;
+  reconocedor.onstart=function(){dictador.activo=true; dictador.base=($(dictador.caja)||{value:''}).value; dictador.desde=0; dictador.vistos=0; dictador.motivo=''; pintarMic();};
+  reconocedor.onresult=function(e){
+    var frases=[], provisional='';
+    for(var k=dictador.desde;k<e.results.length;k++){
+      var frase=e.results[k][0].transcript.trim(); if(!frase) continue;
+      if(!e.results[k].isFinal){provisional+=' '+frase; continue;}
+      // Algunos celulares repiten lo ya dicho y le agregan lo nuevo: se conserva solo la versión más larga.
+      var previa=frases.length?palabras(frases[frases.length-1]).join(' '):null, nueva=palabras(frase).join(' ');
+      if(previa!==null&&nueva.length>previa.length&&(nueva+' ').indexOf(previa+' ')===0) frases[frases.length-1]=frase; else frases.push(frase);
+    }
+    dictador.vistos=e.results.length; dictador.ultimaVoz=Date.now(); dictador.fallos=0;
+    dictador.finales=Array.prototype.filter.call(e.results,function(r){return r.isFinal;}).length;
+    if(dictador.unaFrase){if(frases.length){var una=frases.join(' '), cb=dictador.unaFrase; usoDe().mic.frases++; detenerMic(); cb(una);} else pintarMic(provisional.trim()); return;}
+    var caja=$(dictador.caja); if(!caja) return detenerMic();
+    var base=dictador.base, juntos=frases.join(dictador.sep);
+    caja.value=base+(base&&frases.length&&!/\s$/.test(base)?dictador.sep:'')+juntos;   // en listas, cada pausa es un renglón nuevo
+    caja.scrollTop=caja.scrollHeight;
+    if(dictador.alCambiar) dictador.alCambiar();
+    pintarMic(provisional.trim());
+  };
+  reconocedor.onerror=function(e){
+    if(e.error==='no-speech'||e.error==='aborted') return;   // silencio: se vuelve a encender solo
+    dictador.motivo=e.error; dictador.fallos++;
+  };
+  reconocedor.onend=function(){
+    dictador.activo=false;
+    if(!dictador.quiere) return;
+    usoDe().mic.frases+=dictador.finales||0; dictador.finales=0;   // frases reconocidas en esta escucha
+    var m=dictador.motivo;
+    if(['not-allowed','service-not-allowed','audio-capture','language-not-supported'].indexOf(m)>=0) return detenerMic(m);
+    if(dictador.fallos>=FALLOS_MAXIMOS) return detenerMic(m==='network'?'network':'falla');
+    if(Date.now()-dictador.ultimaVoz>SILENCIO_MAXIMO) return detenerMic('silencio');
+    pintarMic(); dictador.reloj=setTimeout(arrancarDictado,250);
+  };
+}
+// El celular apaga el micrófono al cambiar de app o bloquear la pantalla; al volver se enciende otra vez.
+document.addEventListener('visibilitychange',function(){if(dictador.quiere){dictador.ultimaVoz=Date.now(); arrancarDictado();}});
+// Enciende o apaga el dictado sobre una caja de texto. op: {caja, sep, alCambiar} o {unaFrase: función} para la prueba.
+function encenderMic(op){
+  if(dictador.quiere) return detenerMic();
+  var bloqueo=bloqueoMic(); if(bloqueo){anotarMic(bloqueo); return estadoDictado(MENSAJES_MIC[bloqueo]+TECLADO,'pago');}
+  if(navigator.onLine===false){anotarMic('network'); return estadoDictado(MENSAJES_MIC.network+TECLADO,'pago');}
+  if(!reconocedor) crearReconocedor();
+  dictador.caja=op.caja||''; dictador.sep=op.sep||'\n'; dictador.alCambiar=op.alCambiar||null; dictador.unaFrase=op.unaFrase||null;
+  dictador.quiere=true; dictador.fallos=0; dictador.ultimaVoz=Date.now(); dictador.motivo='';
+  var caja=$(dictador.caja); if(caja) caja.addEventListener('input',corregidoAMano);
+  pintarMic(); arrancarDictado();
+}
+function vTandas(){
+  var c=col();
+  var h='<p class="aviso">Tome varios objetos, toque el micrófono y diga sus nombres con una pausa entre cada uno. Para dos iguales, diga «siguiente» entre ellos.</p>';
+  h+='<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
+  h+='<div class="campo"><label for="dictado">Lo dictado (puede corregirlo)</label><textarea id="dictado" placeholder="Un objeto por renglón"></textarea></div>';
+  h+='<div class="grupo">¿En qué orden quiere el resultado?</div><div class="fila" id="ordenRes"></div>';
+  h+='<div class="fila"><button class="boton" id="ident">Identificar</button><button class="boton sec" id="esc">🔊 Escuchar</button></div><div class="aviso" id="avisoGlobal"></div>';
+  h+='<div class="grupo" id="tituloRes">Resultado</div><div id="res" style="display:flex;flex-direction:column;gap:6px"></div>';
+  h+='<button class="boton grande oculto" id="guardarTanda">✓ Listo: guardar en el historial</button>';
+  h+='<div class="grupo">Cómo dice la voz el lugar</div><div id="formatos" style="display:flex;flex-direction:column;gap:6px"></div>';
+  h+='<div class="grupo">Historial de búsquedas</div><select class="entrada" id="alcanceHist" aria-label="Qué búsquedas se ven"><option value="hoy">Búsquedas de hoy</option><option value="todo">Todo el historial</option></select>';
+  h+='<p class="aviso" id="avisoHist"></p><div id="hist" style="display:flex;flex-direction:column;gap:8px"></div>';
+  $('cuerpo').innerHTML=h;
+  var ultimo=[], inicio=null;
+  var botonGuardar=function(){$('guardarTanda').classList.toggle('oculto',!ultimo.some(function(x){return x.estado==='ok';}));};
+  /* Orden del resultado: lo elige cada persona (c.ordenRes: 'dicho' o 'pila'); mientras no elija, la app no muestra resultados. */
+  var ORDEN_RES=[['dicho','En el orden en que lo dije'],['pila','Del último al primero (para apilar)']];
+  var pintaOrden=function(){
+    $('ordenRes').innerHTML=ORDEN_RES.map(function(x){return '<button class="opcion" style="flex:1" aria-pressed="'+(c.ordenRes===x[0])+'" data-o="'+x[0]+'">'+x[1]+'</button>';}).join('');
+    $('tituloRes').textContent=c.ordenRes==='pila'?'Resultado, del último al primero':c.ordenRes==='dicho'?'Resultado, en el orden en que lo dijo':'Resultado';
+    $('ordenRes').querySelectorAll('button').forEach(function(b){b.onclick=function(){c.ordenRes=b.getAttribute('data-o');guardar();pintaOrden();if($('dictado').value.trim())pinta();};});
+  };
+  var pinta=function(){
+    if(!c.ordenRes&&$('dictado').value.trim()){ultimo=[];botonGuardar();$('res').innerHTML='<div class="vacio">Primero elija arriba en qué orden quiere el resultado.</div>';return aviso('Elija en qué orden quiere el resultado.','pago');}
+    ultimo=identificar($('dictado').value,c); if(c.ordenRes==='pila') ultimo.reverse(); botonGuardar();
+    $('res').innerHTML=ultimo.length?ultimo.map(function(x,i){
+      if(x.estado==='ok') return '<div class="res"><b>'+esc(x.o.nombre)+'</b><small>'+esc(folio(x.o,c))+'</small><span class="dice">'+esc(dice(x.o,c))+'</span></div>';
+      if(x.estado==='duda') return '<div class="res duda"><b>¿Cuál es «'+esc(x.r)+'»? Toque el correcto:</b>'+(x.nota?'<small>'+esc(x.nota)+'</small>':'')+'<div class="opciones">'+x.c.map(function(o){return '<button class="opcion" data-i="'+i+'" data-id="'+o.id+'"><span>'+esc(o.nombre)+'</span><span class="lugar">'+esc(dice(o,c))+'</span></button>';}).join('')+'</div></div>';
+      return '<div class="res no"><b>No está en la colección: «'+esc(x.r)+'»</b><small>La app nunca inventa un lugar.</small></div>';
+    }).join(''):'<div class="vacio">Aquí aparecerá dónde va cada objeto.</div>';
+    $('res').querySelectorAll('.opcion').forEach(function(b){b.onclick=function(){var x=ultimo[+b.getAttribute('data-i')];x.estado='ok';x.o=c.objetos.filter(function(o){return o.id===b.getAttribute('data-id');})[0];pintaLista();botonGuardar();};});
+  };
+  var pintaLista=function(){ // vuelve a dibujar sin volver a identificar
+    $('res').innerHTML=ultimo.map(function(x){ if(x.estado==='ok') return '<div class="res"><b>'+esc(x.o.nombre)+'</b><small>'+esc(folio(x.o,c))+'</small><span class="dice">'+esc(dice(x.o,c))+'</span></div>'; if(x.estado==='duda') return '<div class="res duda"><b>Sin decidir: «'+esc(x.r)+'»</b></div>'; return '<div class="res no"><b>No está en la colección: «'+esc(x.r)+'»</b></div>';}).join('');};
+  $('ident').onclick=function(){if(!inicio)inicio=Date.now();pinta();};
+  /* Historial: cada búsqueda guardada queda en la colección, en el orden en que se dijo, y se muestra en el orden que eligió la persona. Gratis: se abren las 2 más recientes; las demás se conservan y se abren con la versión completa. */
+  $('guardarTanda').onclick=function(){
+    c.tandas=c.tandas||[];
+    c.tandas.push({inicio:inicio||Date.now(),fin:Date.now(),filas:(c.ordenRes==='pila'?ultimo.slice().reverse():ultimo).map(function(x){return {r:x.r,estado:x.estado,id:x.o?x.o.id:null,nombre:x.o?x.o.nombre:''};})});
+    if(!guardar()) return;
+    var n=ultimo.filter(function(x){return x.estado==='ok';}).length;
+    $('dictado').value=''; inicio=null; pinta(); $('alcanceHist').value='hoy'; pintaHist();
+    aviso('Búsqueda guardada en el historial: '+n+(n===1?' objeto.':' objetos.'),'bien');
+  };
+  var fechaHora=function(ms){return new Date(ms).toLocaleString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});};
+  var duracion=function(ms){var m=Math.round(ms/60000);return m<1?'menos de 1 min':m+' min';};
+  var resumen=function(t){var n=t.filas.filter(function(f){return f.estado==='ok';}).length;return '<span><b>'+fechaHora(t.fin)+'</b> · '+n+(n===1?' objeto':' objetos')+' · '+duracion(t.fin-t.inicio)+'</span>';};
+  var detalle=function(t){
+    return '<div class="contenido">'+(c.ordenRes==='pila'?t.filas.slice().reverse():t.filas).map(function(f,i){
+      if(f.estado!=='ok') return '<div class="res '+(f.estado==='duda'?'duda':'no')+'"><b>'+(f.estado==='duda'?'Quedó sin decidir':'No estaba en la colección')+': «'+esc(f.r)+'»</b></div>';
+      var o=c.objetos.filter(function(x){return x.id===f.id;})[0];
+      if(!o) return '<div class="objeto fuera"><div class="mini" style="background:var(--suave)">?</div><div><b>'+esc(f.nombre)+'</b><small>Ya no está en la colección · dictado: «'+esc(f.r)+'»</small></div><div></div></div>';
+      return '<div class="objeto">'+miniatura(o,i)+'<div><b>'+esc(o.nombre)+'</b><small>'+esc(folio(o,c))+' · dictado: «'+esc(f.r)+'»</small></div><div class="lugar">'+esc(dice(o,c))+'</div></div>';
+    }).join('')+'</div>';
+  };
+  var pintaHist=function(){
+    var todas=(c.tandas||[]).slice().reverse(), hoy=new Date().toDateString();   // la más reciente primero
+    var abiertas=libre()?todas.length:LIMITES.historial;
+    var vistas=todas.map(function(t,i){return {t:t,i:i};}).filter(function(x){return $('alcanceHist').value==='todo'||new Date(x.t.fin).toDateString()===hoy;});
+    $('avisoHist').className='aviso'+(libre()?'':' pago');
+    $('avisoHist').textContent=!todas.length?'Todavía no hay búsquedas guardadas. Al terminar de acomodar, toque «Listo: guardar en el historial».'
+      :libre()?'Toque una búsqueda para ver dónde quedó cada objeto, con su foto.'
+      :'Versión gratis: se abren sus '+LIMITES.historial+' búsquedas más recientes. Las anteriores quedan guardadas y se abren con la versión completa.';
+    $('hist').innerHTML=vistas.length?vistas.map(function(x){
+      return x.i<abiertas?'<details class="tanda" data-i="'+x.i+'"><summary>'+resumen(x.t)+'</summary></details>'
+        :'<button class="opcion bloqueada" data-bloqueada="1">'+resumen(x.t)+candado()+'</button>';
+    }).join(''):(todas.length?'<div class="vacio">Hoy no hay búsquedas guardadas. Elija «Todo el historial» para ver las anteriores.</div>':'');
+    $('hist').querySelectorAll('[data-bloqueada]').forEach(function(b){b.onclick=function(){ofrecerPago('Ver todo el historial de búsquedas');};});
+    $('hist').querySelectorAll('details').forEach(function(d){d.ontoggle=function(){ if(d.open&&!d.getAttribute('data-listo')){d.insertAdjacentHTML('beforeend',detalle(todas[+d.getAttribute('data-i')]));d.setAttribute('data-listo','1');} };});  // las fotos se cargan solo al abrir
+  };
+  $('alcanceHist').onchange=pintaHist;
+  $('esc').onclick=function(){
+    if(!ultimo.length) pinta(); if(!ultimo.length) return aviso('Primero dicte o escriba algún nombre.');
+    var t=ultimo.map(function(x){return x.estado==='ok'?x.o.nombre+'. '+dice(x.o,c):x.estado==='duda'?'Sin decidir: '+x.r:'No encontrado: '+x.r;}).join('. ');
+    if(!hablar(t)) aviso('Este navegador no permite la voz. En el celular, con Chrome, sí se oye.','pago');
+  };
+  $('mic').onclick=function(){encenderMic({caja:'dictado'});};
+  var ejemploFormato=function(f){   // objeto de muestra con la catalogación de esta colección
+    var cl=c.clasif||[], m={lugar:c.niveles.map(function(n,i){return String([3,2,4,1][i]||i+1);}),clasif:{},campos:{}};
+    if(cl[0]) m.clasif[cl[0]]=(CLASIFICACIONES[cl[0]]||[])[0]||cl[0].toLowerCase();
+    if(c.datoExtra) m.campos[c.datoExtra]='5';
+    var t=dice(m,c,f.id); return t==='sin lugar'?'':'«'+t+'»';
+  };
+  var pintaFormatos=function(){
+    $('formatos').innerHTML=FORMATOS.map(function(f){var lock=!libre()&&!f.gratis;return '<button class="opcion'+(lock?' bloqueada':'')+'" aria-pressed="'+(c.formato===f.id)+'" data-f="'+f.id+'"><span><b>'+esc(f.t)+'</b> '+esc(ejemploFormato(f))+'</span>'+(lock?candado():'')+'</button>';}).join('')
+      +(c.formato==='propio'&&libre()?'<div class="campo"><label for="frase">Su frase, antes de la catalogación</label><input id="frase" value="'+esc(c.frase||'va en')+'"></div>':'');
+    if($('frase')) $('frase').onchange=function(){c.frase=$('frase').value.trim()||'va en';guardar();pintaFormatos();if(ultimo.length) pinta();};
+    $('formatos').querySelectorAll('button').forEach(function(b){b.onclick=function(){var f=FORMATOS.filter(function(x){return x.id===b.getAttribute('data-f');})[0]; if(!libre()&&!f.gratis) return ofrecerPago('El formato «'+f.t+'»'); c.formato=f.id; guardar(); pintaFormatos(); if(ultimo.length) pinta();};});
+  };
+  pintaOrden(); pintaFormatos(); pinta(); pintaHist();
+}
+
+function vExplorar(){
+  var c=col(); var claves=[];
+  c.objetos.forEach(function(o){var k=(o.lugar||[]).slice(0,1).join('');if(k&&claves.indexOf(k)<0)claves.push(k);}); claves.sort(function(a,b){return a.localeCompare(b,'es',{numeric:true});});
+  var h='<div class="campo"><label for="filtro">Qué recorrer</label><select id="filtro"><option value="">Toda la colección</option>'+claves.map(function(k){return '<option value="'+esc(k)+'">'+esc(c.niveles[0])+' '+esc(k)+'</option>';}).join('')+'</select></div>';
+  var valoresQue=[]; (c.clasif||[]).forEach(function(k){c.objetos.forEach(function(o){var v=(o.clasif||{})[k]; if(v&&!valoresQue.some(function(x){return x.k===k&&x.v===v;})) valoresQue.push({k:k,v:v});});});
+  h+='<div class="campo"><label for="filtro2">Además, filtrar por «¿Qué es?»</label><select id="filtro2" '+(libre()&&valoresQue.length?'':'disabled')+'><option value="">'+(!libre()?'🔒 Filtros combinados: versión completa':valoresQue.length?'Sin filtro adicional':'Esta colección no tiene valores de «¿Qué es?»')+'</option>'+(libre()?valoresQue.map(function(x,i){return '<option value="'+i+'">'+esc(x.k+': '+x.v)+'</option>';}).join(''):'')+'</select></div>';
+  h+='<div class="res" id="actual" style="min-height:84px"></div>';
+  h+='<div class="fila"><button class="boton sec" id="ant">⏮ Anterior</button><button class="boton" id="rep">🔊 Leer</button><button class="boton sec" id="sig">Siguiente ⏭</button></div>';
+  h+='<button class="boton sec" id="todo">▶ Leer todo seguido</button><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  var pos=0, sel=[], seguido=false;
+  var calc=function(){var f=$('filtro').value, f2=valoresQue[$('filtro2').value]; sel=c.objetos.filter(function(o){return (!f||(o.lugar||[])[0]===f)&&(!f2||(o.clasif||{})[f2.k]===f2.v);}); if(pos>=sel.length)pos=0;};
+  var muestra=function(){calc(); var o=sel[pos]; $('actual').innerHTML=o?'<b>'+(pos+1)+' de '+sel.length+' · '+esc(o.nombre)+'</b><span class="dice">'+esc(dice(o,c))+'</span>':'<div class="vacio">No hay objetos aquí.</div>'; return o;};
+  var leer=function(cb){var o=muestra(); if(!o) return; if(!hablar(o.nombre+'. '+dice(o,c),cb)) aviso('Este navegador no permite la voz.','pago');};
+  $('filtro').onchange=$('filtro2').onchange=function(){pos=0;seguido=false;callar();muestra();};
+  $('ant').onclick=function(){seguido=false;pos=(pos-1+sel.length)%Math.max(sel.length,1);leer();};
+  $('sig').onclick=function(){seguido=false;pos=(pos+1)%Math.max(sel.length,1);leer();};
+  $('rep').onclick=function(){seguido=false;leer();};
+  $('todo').onclick=function(){ if(seguido){seguido=false;callar();$('todo').textContent='▶ Leer todo seguido';return;} seguido=true; pos=0; $('todo').textContent='■ Detener';
+    var paso=function(){ if(!seguido) return; leer(function(){ if(!seguido) return; if(pos<sel.length-1){pos++; setTimeout(paso,600);} else {seguido=false;$('todo').textContent='▶ Leer todo seguido';} }); }; paso(); };
+  muestra();
+}
+
+function vMas(){
+  var opciones=[
+    ['colecciones','📁','Mis colecciones','Cambiar de colección o crear otra'],
+    ['importar','⬆','Importar archivo','Excel o CSV para llenar la colección'],
+    ['exportar','⬇','Exportar','Excel, CSV o Word'],
+    ['dictar','✎','Dictar un documento','Word o Excel por voz'+(libre()?'':' · 1 de cada uno de prueba')],
+    ['ajustes','⚙','Ajustes y plan','Tema y colores, formato de voz, versión completa, respaldo']
+  ];
+  $('cuerpo').innerHTML=opciones.map(function(o){return '<button class="plantilla" data-p="'+o[0]+'"><span class="ico">'+o[1]+'</span><span><b>'+esc(o[2])+'</b><small>'+esc(o[3])+'</small></span><span>›</span></button>';}).join('');
+  $('cuerpo').querySelectorAll('button').forEach(function(b){b.onclick=function(){ir(b.getAttribute('data-p'));};});
+}
+function vColecciones(){
+  var h='<div class="grupo">Mis colecciones</div>'+E.colecciones.map(function(c){return '<button class="plantilla" data-id="'+c.id+'"><span class="ico">'+((PLANTILLAS.filter(function(p){return p.id===c.plantilla;})[0]||{}).ico||'◻')+'</span><span><b>'+esc(c.nombre)+'</b><small>'+c.objetos.length+' objetos · '+esc(c.niveles.concat(c.clasif||[]).join(' → ')||'sin catalogación')+'</small></span><span>'+(c.id===E.actual?'✓':'›')+'</span></button>';}).join('');
+  h+='<button class="boton grande" id="nuevaCol">+ Nueva colección</button><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  $('cuerpo').querySelectorAll('[data-id]').forEach(function(b){b.onclick=function(){E.actual=b.getAttribute('data-id');guardar();ir('lista');};});
+  $('nuevaCol').onclick=function(){ if(!libre()&&E.colecciones.length>=LIMITES.colecciones) return ofrecerPago('Tener más de una colección'); ir('nueva'); };
+}
+function vNueva(){
+  /* Crear una colección: nombre, plantilla opcional y, ahí mismo, las dos listas de catalogación («¿Dónde va?» y «¿Qué es?»).
+     Una opción de la lista solo preselecciona; en la versión gratis se aplican las que caben (2 y 1) y las demás se muestran con candado.
+     El orden en que se tocan es el orden en que habla la voz. */
+  var h=E.colecciones.length?'<h2 style="font-size:1.1rem">Nueva colección</h2>':'<h2 style="font-size:1.1rem">Le damos la bienvenida a Vozcalizador</h2><p style="margin:-4px 0 8px;font-weight:700;color:var(--acento)">Acomoda y encuentra por voz</p><p class="aviso bien">Póngale nombre a su colección y elija qué dirá la voz de cada objeto: dónde va y qué es. Al tocar el nombre verá una lista de cosas que organizar; al elegir una, la app marca esas opciones por usted.</p>';
+  h+='<div class="campo"><label for="nomCol">Nombre de la colección</label><input id="nomCol" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugerencias"><div class="desplegable oculto" id="sugerencias" role="listbox"></div></div><p class="aviso" id="elegida"></p>';
+  h+='<div class="grupo">¿Dónde va? · la voz lo dice primero</div><div id="opDonde" style="display:flex;flex-direction:column;gap:6px"></div>';
+  h+='<div class="grupo">¿Qué es? · la voz lo dice después</div><div id="opQue" style="display:flex;flex-direction:column;gap:6px"></div>';
+  h+='<p class="aviso" id="resumenVoz"></p><div class="aviso" id="avisoGlobal"></div><button class="boton grande" id="crearCol">Crear colección</button>';
+  if(!E.colecciones.length) h+='<p class="aviso">¿Ya usaba la app en otro teléfono? <label for="archivoResp" style="text-decoration:underline;cursor:pointer;font-weight:700">Restaurar un respaldo</label></p><input type="file" id="archivoResp" accept=".json,application/json" hidden>';
+  if(!E.colecciones.length) h+='<p class="aviso">Versión de prueba: también puede empezar con colecciones de ejemplo y después cargar más ejemplos en Más → Ajustes.</p><button class="boton sec grande" id="cargarEjemplos">Cargar colecciones de ejemplo</button>';
+  $('cuerpo').innerHTML=h;
+  if($('cargarEjemplos')) $('cargarEjemplos').onclick=function(){cargarEjemplo('colecciones');};
+
+  var sel={plantilla:'blanco', niveles:[], clasif:[], sobran:[]};
+  var plantilla=function(){return PLANTILLAS.filter(function(p){return p.id===sel.plantilla;})[0];};
+  var listaDe=function(grupo){return grupo==='donde'?sel.niveles:sel.clasif;};
+  var opcion=function(grupo,n){
+    var lista=listaDe(grupo), i=lista.indexOf(n), lock=i<0&&!caben(grupo,lista);
+    return '<button class="opcion'+(lock?' bloqueada':'')+'" aria-pressed="'+(i>=0)+'" data-g="'+grupo+'" data-n="'+esc(n)+'"><span>'+(i>=0?(i+1)+'. ':'')+esc(n)+'</span>'+(lock?candado():'')+'</button>';
+  };
+  var pinta=function(){
+    $('elegida').textContent=sel.plantilla==='blanco'?'Toque el nombre para ver qué puede organizar, o escriba el suyo y elija abajo.':'Opciones preparadas para «'+plantilla().t+'». Puede cambiarlas abajo.';
+    $('opDonde').innerHTML=UBICACIONES.map(function(n){return opcion('donde',n);}).join('');
+    $('opQue').innerHTML=Object.keys(CLASIFICACIONES).map(function(n){return opcion('que',n);}).join('');
+    var sobran=sel.sobran.filter(function(n){return sel.niveles.indexOf(n)<0&&sel.clasif.indexOf(n)<0;});
+    $('resumenVoz').textContent=(sel.niveles.length+sel.clasif.length?'La voz dirá: '+sel.niveles.concat(sel.clasif).join(', ')+'.':'Toque las opciones que necesite. Puede cambiarlas después en «Agregar».')+(sobran.length?' Con la versión completa también: '+sobran.join(', ')+' 🔒.':'');
+    $('cuerpo').querySelectorAll('[data-g]').forEach(function(b){b.onclick=function(){
+      var g=b.getAttribute('data-g'), n=b.getAttribute('data-n'), lista=listaDe(g), i=lista.indexOf(n);
+      if(i>=0) lista.splice(i,1); else { if(!caben(g,lista)) return ofrecerPago(g==='donde'?'Más de '+LIMITES.donde+' catalogaciones de «¿Dónde va?»':'Más de '+LIMITES.que+' catalogación de «¿Qué es?»'); lista.push(n); }
+      pinta();
+    };});
+  };
+  /* Lista desplegable: al tocar el nombre aparecen todas las situaciones agrupadas por ámbito; al escribir, se filtran. */
+  var aplicar=function(id){
+    var p=PLANTILLAS.filter(function(x){return x.id===id;})[0], nd=libre()?p.niveles.length:LIMITES.donde, nq=libre()?p.clasif.length:LIMITES.que;
+    sel={plantilla:p.id, niveles:p.niveles.slice(0,nd), clasif:p.clasif.slice(0,nq), sobran:p.niveles.slice(nd).concat(p.clasif.slice(nq))}; $('nomCol').value=p.t; cerrar(); pinta();};
+  var cerrar=function(){if(!$('sugerencias')) return; $('sugerencias').classList.add('oculto');$('nomCol').setAttribute('aria-expanded','false');};  // puede llamarse después de cambiar de pantalla
+  var abrir=function(filtrar){
+    var q=filtrar?palabras($('nomCol').value).join(' '):'';
+    var html=AMBITOS.map(function(a){
+      var op=PLANTILLAS.filter(function(p){return p.ambito===a[0]&&(!q||palabras(a[0]+' '+p.t).join(' ').indexOf(q)>=0);});
+      return op.length?'<div class="amb">'+a[1]+' '+esc(a[0])+'</div>'+op.map(function(p){return '<button type="button" role="option" data-id="'+p.id+'"><b>'+esc(p.t)+'</b><small>'+esc(p.niveles.concat(p.clasif).join(' · '))+'</small></button>';}).join(''):'';
+    }).join('');
+    $('sugerencias').innerHTML=html||'<div class="amb">Sin coincidencias: se creará con el nombre que escribió</div>';
+    $('sugerencias').classList.remove('oculto'); $('nomCol').setAttribute('aria-expanded','true');
+    $('sugerencias').querySelectorAll('[data-id]').forEach(function(b){b.onmousedown=function(e){e.preventDefault();}; b.onclick=function(){aplicar(b.getAttribute('data-id'));};});
+  };
+  $('nomCol').onfocus=function(){abrir(false);}; $('nomCol').oninput=function(){abrir(true);}; $('nomCol').onblur=function(){setTimeout(cerrar,150);};
+  if($('archivoResp')) $('archivoResp').onchange=function(){restaurarRespaldo(this.files[0]); this.value='';};
+  $('crearCol').onclick=function(){
+    var n=$('nomCol').value.trim(); if(!n){aviso('Escriba el nombre de la colección.','pago');$('nomCol').focus();return;}
+    var c=nuevaColeccion(n,sel.plantilla); c.niveles=sel.niveles.slice(); c.clasif=sel.clasif.slice();
+    E.colecciones.push(c); E.actual=c.id; guardar(); ir('agregar');
+  };
+  pinta();
+}
+function vAjustes(){
+  var c=col();
+  var h='<div class="tarjeta"><div class="interruptor"><span><b>Versión completa</b><br><small style="color:var(--suave)">'+PRECIO+', un solo pago</small></span>'+(E.pago?'<span class="chip pago">Activa (simulada)</span>':'<button class="boton" id="comprar" style="background:var(--pago);color:#1b1200">Ver</button>')+'</div>'+(E.pago?'<button class="boton sec" id="volverGratis">Volver a la versión gratis (solo para probar)</button>':'')+'</div>';
+  h+='<div class="grupo">Cargar ejemplos de…</div><p class="aviso">Solo existe en esta versión de prueba. Cada botón agrega datos de muestra; no borra lo que ya tiene, salvo «Borrar todo y empezar de cero».</p><div id="cargaEjemplos" style="display:flex;flex-direction:column;gap:8px"></div>';
+  h+='<div class="grupo">Apariencia</div><div class="tarjeta"><div class="etq">Tema</div><div class="chips" id="temas"></div><p class="aviso">«Predeterminado» sigue el modo claro u oscuro del celular.</p><div class="etq">Tono de color</div><div id="paletas" style="display:flex;flex-direction:column;gap:6px"></div><div class="etq">Personalizar</div><div id="personal" style="display:flex;flex-direction:column;gap:8px"></div></div>';
+  h+='<div class="grupo" id="tDatoExtra">Dato que se agrega con el formato «con otro dato al final»</div><select class="entrada" id="datoExtra" aria-labelledby="tDatoExtra" '+(libre()&&c.campos.length?'':'disabled')+'>'+(c.campos.length?c.campos.map(function(k){return '<option '+(c.datoExtra===k?'selected':'')+'>'+esc(k)+'</option>';}).join(''):'<option>Esta colección no tiene campos</option>')+'</select>';
+  h+='<div class="grupo">Colección actual</div><div class="campo"><label for="renCol">Nombre</label><input id="renCol" value="'+esc(c.nombre)+'"></div>';
+  h+='<div class="campo"><label for="prefijo">Prefijo del folio (hasta 5 letras o números)</label><input id="prefijo" maxlength="5" autocomplete="off" value="'+esc(c.prefijo||'')+'"></div><p class="aviso" id="muestraFolio"></p>';
+  h+='<div class="grupo">Respaldo</div><div class="tarjeta"><p class="aviso" id="ultimoResp"></p><button class="boton" id="respaldo">Descargar respaldo</button><label class="boton sec" for="archivoResp" style="text-align:center">Restaurar un respaldo</label><input type="file" id="archivoResp" accept=".json,application/json" hidden><p class="aviso">El respaldo es un archivo con todas sus colecciones, fotos e historial. Guárdelo en su correo o en la nube: si cambia de teléfono o se borra la app, lo restaura aquí. Siempre es gratis.</p></div>';
+  h+='<div class="grupo">Micrófono e informe de uso</div><div class="tarjeta"><p class="aviso">Pruebe si el dictado funciona en este teléfono: toque 🎙 y diga una frase.</p><div class="fila"><button class="mic" id="mic" aria-pressed="false" aria-label="Probar el micrófono">🎙</button><p class="aviso" id="pruebaMic" style="flex:1">'+esc(textoPruebaMic())+'</p></div><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
+  h+='<button class="boton sec" id="informe">Descargar informe de uso</button><p class="aviso">El informe cuenta cuántas veces se tocaron funciones de la versión completa y cómo respondió el micrófono, e incluye el modelo del teléfono y el navegador. No incluye nombres de objetos, datos ni fotos. Solo sale del teléfono si usted lo descarga y lo comparte; sirve para ajustar la app.</p></div>';
+  h+='<div class="grupo">Liberar espacio</div><div class="tarjeta"><p class="aviso" id="espacio"></p><button class="boton peligro" id="quitarFotos">Quitar las fotos de esta colección</button><button class="boton peligro" id="borrarHist">Borrar el historial de búsquedas de esta colección</button><button class="boton peligro" id="vaciarCol">Vaciar esta colección (conserva su catalogación)</button><button class="boton peligro" id="borrarCol">Borrar esta colección</button><p class="aviso">Borrar siempre es gratis. Antes de borrar, si quiere conservarlo, use «Exportar» o el respaldo.</p></div><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  pintarCargaEjemplos();
+  var pintaApariencia=function(){
+    $('temas').innerHTML=TEMAS.map(function(t){return '<button aria-pressed="'+((E.tema||'sistema')===t.id)+'" data-t="'+t.id+'">'+esc(t.t)+'</button>';}).join('');
+    var modo=modoOscuro()?'oscuro':'claro', activa=paletaActiva().id;
+    $('paletas').innerHTML=PALETAS.map(function(p){var lock=!libre()&&p.gratisEn!==modo;return '<button class="opcion'+(lock?' bloqueada':'')+'" aria-pressed="'+(activa===p.id)+'" data-pal="'+p.id+'"><span class="muestra"><i style="background:linear-gradient(135deg,'+tonosDe(p.h,p.s,false)[0]+' 50%,'+tonosDe(p.h,p.s,true)[0]+' 50%)"></i><span><b>'+esc(p.t)+'</b>'+(p.gratisEn?' <small>· gratis en tema '+p.gratisEn+'</small>':'')+'</span></span>'+(lock?candado():'')+'</button>';}).join('');
+    var per=E.personal||{principal:'#0f766e',lineas:'#3b4240'};
+    $('personal').innerHTML=libre()
+      ?'<button class="opcion" aria-pressed="'+(activa==='personal')+'" id="usarPersonal"><span class="muestra"><i style="background:linear-gradient(135deg,'+per.principal+' 50%,'+(per.lineas||per.principal)+' 50%)"></i><b>🎨 Mis tonos</b></span></button><div class="fila"><div class="campo" style="flex:1"><label for="cPrincipal">Color principal</label><input type="color" id="cPrincipal" value="'+per.principal+'" style="height:44px;padding:4px"></div><div class="campo" style="flex:1"><label for="cLineas">Líneas y texto secundario</label><input type="color" id="cLineas" value="'+(per.lineas||per.principal)+'" style="height:44px;padding:4px"></div></div><p class="aviso">La app ajusta lo claro u oscuro de sus tonos para que el texto se siga leyendo bien en cada tema.</p>'
+      :'<button class="opcion bloqueada" id="usarPersonal"><span><b>🎨 Personalizar tonos</b></span>'+candado()+'</button>';
+    $('temas').querySelectorAll('button').forEach(function(b){b.onclick=function(){E.tema=b.getAttribute('data-t');guardar();aplicarApariencia();pintaApariencia();};});
+    $('paletas').querySelectorAll('button').forEach(function(b){b.onclick=function(){var p=PALETAS.filter(function(x){return x.id===b.getAttribute('data-pal');})[0]; if(!libre()&&p.gratisEn!==modo) return ofrecerPago('El tono «'+p.t+'» en tema '+modo); E.paleta=p.id;guardar();aplicarApariencia();pintaApariencia();};});
+    var usarPersonal=function(){E.personal={principal:$('cPrincipal').value,lineas:$('cLineas').value};E.paleta='personal';aplicarApariencia();};
+    $('usarPersonal').onclick=function(){if(!libre()) return ofrecerPago('Personalizar los tonos'); usarPersonal();guardar();pintaApariencia();};
+    if(libre()){['cPrincipal','cLineas'].forEach(function(id){$(id).oninput=usarPersonal;$(id).onchange=function(){usarPersonal();guardar();pintaApariencia();};});}
+  };
+  pintaApariencia();
+  if($('comprar')) $('comprar').onclick=function(){ofrecerPago('Todo lo marcado con candado');};
+  if($('volverGratis')) $('volverGratis').onclick=function(){E.pago=false;guardar();plan();ir('ajustes');};
+  $('datoExtra').onchange=function(){c.datoExtra=$('datoExtra').value;guardar();};
+  var muestraFolio=function(){$('muestraFolio').textContent='Así se ven: '+folio({folio:1},c)+', '+folio({folio:2},c)+'… Cambiar el prefijo no cambia los números.';};
+  muestraFolio();
+  $('prefijo').oninput=function(){var v=$('prefijo').value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9Ñ]/g,'').slice(0,5); if(v!==$('prefijo').value) $('prefijo').value=v; c.prefijo=v; guardar(); muestraFolio();};
+  $('renCol').onchange=function(){c.nombre=$('renCol').value.trim()||c.nombre;guardar();$('titulo').textContent=c.nombre;};
+  $('ultimoResp').textContent=E.ultimoRespaldo?'Último respaldo: '+new Date(E.ultimoRespaldo).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+'.':'Todavía no ha descargado ningún respaldo.';
+  $('respaldo').onclick=descargarRespaldo;
+  $('mic').onclick=function(){encenderMic({unaFrase:function(t){var m=usoDe().mic; m.prueba={ok:true,fecha:Date.now()}; guardar(); $('pruebaMic').textContent='Entendí: «'+t+'». '+textoPruebaMic();}});};
+  $('informe').onclick=function(){
+    var hoy=new Date(), f=hoy.getFullYear()+'-'+('0'+(hoy.getMonth()+1)).slice(-2)+'-'+('0'+hoy.getDate()).slice(-2);
+    descargar('Vozcalizador-informe-de-uso-'+f+'.txt',new Blob([informeUso()],{type:'text/plain'})).then(function(r){aviso(r==='ok'?'Informe descargado.':'No se descargó el informe.',r==='ok'?'bien':'pago');});
+  };
+  $('archivoResp').onchange=function(){restaurarRespaldo(this.files[0]); this.value='';};
+  /* Liberar espacio: las fotos son lo que más ocupa. */
+  var tam=function(n){return n>=1048576?(n/1048576).toLocaleString('es-MX',{maximumFractionDigits:1})+' MB':Math.max(1,Math.round(n/1024)).toLocaleString('es-MX')+' KB';};
+  var pesoFotos=c.objetos.reduce(function(a,o){return a+(o.fotos||[]).reduce(function(b,f){return b+f.length;},0);},0), conFoto=c.objetos.filter(function(o){return (o.fotos||[]).length;}).length;
+  var texto='Sus datos ocupan unos '+tam(JSON.stringify(E).length)+'. Las fotos de esta colección ocupan '+(pesoFotos?tam(pesoFotos):'0 KB')+'.';
+  $('espacio').textContent=texto;
+  if(navigator.storage&&navigator.storage.estimate) navigator.storage.estimate().then(function(x){if($('espacio')&&x.quota) $('espacio').textContent=texto+' Este dispositivo le deja usar hasta '+tam(x.quota)+'.';}).catch(function(){});
+  $('quitarFotos').onclick=function(){ if(!conFoto) return aviso('Esta colección no tiene fotos.','pago'); confirmar('¿Quitar las fotos de '+conFoto+' objetos de «'+c.nombre+'»? Los objetos y sus datos se conservan.',function(){c.objetos.forEach(function(o){o.fotos=[];});guardar();ir('ajustes');aviso('Fotos quitadas.','bien');}); };
+  $('borrarHist').onclick=function(){ var n=(c.tandas||[]).length; if(!n) return aviso('Esta colección no tiene búsquedas guardadas.','pago'); confirmar('¿Borrar las '+n+' búsquedas del historial de «'+c.nombre+'»?',function(){c.tandas=[];guardar();ir('ajustes');aviso('Historial borrado.','bien');}); };
+  $('vaciarCol').onclick=function(){ if(!c.objetos.length) return aviso('Esta colección ya está vacía.','pago'); confirmar('¿Borrar los '+c.objetos.length+' objetos y el historial de «'+c.nombre+'»? Se conservan su nombre y su catalogación.',function(){c.objetos=[];c.tandas=[];guardar();ir('ajustes');aviso('Colección vaciada.','bien');}); };
+  $('borrarCol').onclick=function(){ confirmar('¿Borrar la colección «'+c.nombre+'» y sus '+c.objetos.length+' objetos?',function(){E.colecciones.splice(E.colecciones.indexOf(c),1);E.actual=E.colecciones.length?E.colecciones[0].id:null;guardar();ir(E.colecciones.length?'lista':'nueva');}); };
+}
+/* ---- Informe de uso: solo conteos, nada de lo capturado ---- */
+function textoPruebaMic(){
+  var m=usoDe().mic, bloqueo=bloqueoMic();
+  if(bloqueo) return MENSAJES_MIC[bloqueo]+TECLADO;
+  return m.prueba?'El micrófono funcionó en la prueba del '+new Date(m.prueba.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'long'})+'.':'Todavía no se ha probado en este teléfono.';
+}
+function informeUso(){
+  var u=usoDe(), objs=E.colecciones.reduce(function(a,c){return a.concat(c.objetos);},[]);
+  var lineas=['Vozcalizador · informe de uso','Fecha: '+new Date().toLocaleString('es-MX'),'Teléfono y navegador: '+navigator.userAgent,
+    'Dictado por voz disponible: '+((window.SpeechRecognition||window.webkitSpeechRecognition)?'sí':'no'),'Versión: '+(E.pago?'completa':'gratis'),'',
+    'Colecciones: '+E.colecciones.length,'Objetos: '+objs.length,'Objetos con foto: '+objs.filter(function(o){return (o.fotos||[]).length;}).length,
+    'Búsquedas guardadas: '+E.colecciones.reduce(function(a,c){return a+(c.tandas||[]).length;},0),'',
+    'Funciones de la versión completa que se tocaron (veces):'];
+  var cand=Object.keys(u.candados).sort(function(a,b){return u.candados[b]-u.candados[a];});
+  lineas=lineas.concat(cand.length?cand.map(function(k){return '  '+u.candados[k]+' · '+k;}):['  ninguna']);
+  lineas.push('','Micrófono:','  Frases reconocidas: '+u.mic.frases,'  Prueba: '+(u.mic.prueba?'funcionó':'sin hacer'));
+  var err=Object.keys(u.mic.errores);
+  lineas=lineas.concat(err.length?err.map(function(k){return '  Error «'+k+'»: '+u.mic.errores[k]+(u.mic.errores[k]===1?' vez':' veces');}):['  Sin errores']);
+  return lineas.join('\n')+'\n';
+}
+/* ---- Respaldo en archivo: descargar y restaurar ---- */
+function descargarRespaldo(){
+  var hoy=new Date(), f=hoy.getFullYear()+'-'+('0'+(hoy.getMonth()+1)).slice(-2)+'-'+('0'+hoy.getDate()).slice(-2);
+  var datos=JSON.parse(JSON.stringify(E)); datos.ultimoRespaldo=hoy.getTime();
+  descargar('Vozcalizador-respaldo-'+f+'.json',new Blob([JSON.stringify({app:'Vozcalizador',version:1,fecha:hoy.toISOString(),datos:datos})],{type:'application/json'})).then(function(r){
+    if(r!=='ok') return aviso(r==='no'?'No se descargó el respaldo.':'No se pudo descargar el respaldo.','pago');
+    E.ultimoRespaldo=hoy.getTime(); guardar(); if(E.colecciones.length&&$('ultimoResp')) ir('ajustes'); aviso('Respaldo descargado. Guárdelo en su correo o en la nube.','bien');
+  });
+}
+function restaurarRespaldo(archivo){
+  if(!archivo) return;
+  var lector=new FileReader();
+  lector.onload=function(){
+    var r=null; try{r=JSON.parse(lector.result);}catch(e){}
+    var d=r&&r.datos;
+    if(!d||!Array.isArray(d.colecciones)) return aviso('Ese archivo no es un respaldo de Vozcalizador.','pago');
+    var n=d.colecciones.reduce(function(a,x){return a+(x.objetos||[]).length;},0);
+    confirmar('¿Restaurar el respaldo del '+new Date(r.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})+' ('+d.colecciones.length+' colecciones, '+n+' objetos)? Reemplaza todo lo que hay ahora en la app.',function(){
+      d.pago=E.pago; E=d; E.actual=E.colecciones.some(function(x){return x.id===E.actual;})?E.actual:(E.colecciones[0]||{}).id||null;
+      if(guardar()){plan(); ir(E.colecciones.length?'lista':'nueva'); aviso('Respaldo restaurado.','bien');}
+    },'Sí, restaurar');
+  };
+  lector.onerror=function(){aviso('No se pudo leer el archivo.','pago');};
+  lector.readAsText(archivo);
+}
+function copiar(texto,ok){
+  try{navigator.clipboard.writeText(texto).then(function(){aviso(ok,'bien');},function(){aviso('No se pudo copiar aquí.','pago');});}catch(e){aviso('No se pudo copiar aquí.','pago');}
+}
+function tabla(c){
+  var cl=c.clasif||[], cols=['Folio','Nombre'].concat(c.campos).concat(c.niveles).concat(cl);
+  return [cols].concat(c.objetos.map(function(o){return [folio(o,c),o.nombre].concat(c.campos.map(function(k){return (o.campos||{})[k]||'';})).concat(c.niveles.map(function(n,i){return (o.lugar||[])[i]||'';})).concat(cl.map(function(k){return (o.clasif||{})[k]||'';}));}));
+}
+function aCSV(filas){return filas.map(function(f){return f.map(function(v){v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(',');}).join('\n');}
+/* ---- Archivos reales .xlsx y .docx (ZIP sin compresión, sin programas adicionales) ---- */
+var CRC=(function(){var t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(b){var c=0xFFFFFFFF;for(var i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zip(archivos){ // archivos: [[ruta, texto | Uint8Array]]
+  var enc=new TextEncoder(), partes=[], central=[], off=0;
+  var u16=function(v){return [v&255,(v>>>8)&255];}, u32=function(v){return [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];};
+  archivos.forEach(function(f){
+    var nom=enc.encode(f[0]), dat=typeof f[1]==='string'?enc.encode(f[1]):f[1], crc=crc32(dat);
+    var cab=[].concat(u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(crc),u32(dat.length),u32(dat.length),u16(nom.length),u16(0));
+    partes.push(new Uint8Array(cab),nom,dat);
+    central.push(new Uint8Array([].concat(u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0x21),u32(crc),u32(dat.length),u32(dat.length),u16(nom.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off))),nom);
+    off+=cab.length+nom.length+dat.length;
+  });
+  var tam=central.reduce(function(s,x){return s+x.length;},0);
+  return new Blob(partes.concat(central,[new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(archivos.length),u16(archivos.length),u32(tam),u32(off),u16(0)))]));
+}
+function xesc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');}
+function colLetra(i){var s='';i++;while(i>0){var m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
+function crearXLSX(filas,hoja){
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  var datos=filas.map(function(f,r){return '<row r="'+(r+1)+'">'+f.map(function(v,c){var ref=colLetra(c)+(r+1);return /^-?\d+(\.\d+)?$/.test(String(v))&&r>0?'<c r="'+ref+'"><v>'+v+'</v></c>':'<c r="'+ref+'" t="inlineStr"'+(r===0?' s="1"':'')+'><is><t xml:space="preserve">'+xesc(v)+'</t></is></c>';}).join('')+'</row>';}).join('');
+  return zip([
+    ['[Content_Types].xml',x+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+    ['_rels/.rels',x+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'],
+    ['xl/workbook.xml',x+'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+xesc((hoja||'Hoja1').slice(0,31).replace(/[\\\/\?\*\[\]:]/g,''))+'" sheetId="1" r:id="rId1"/></sheets></workbook>'],
+    ['xl/_rels/workbook.xml.rels',x+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
+    ['xl/styles.xml',x+'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf fontId="1" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>'],
+    ['xl/worksheets/sheet1.xml',x+'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>'+(filas[0]||[]).map(function(_,c){var m=Math.min(50,Math.max(8,filas.reduce(function(a,f){return Math.max(a,String(f[c]||'').length);},0)+2));return '<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+m+'" customWidth="1"/>';}).join('')+'</cols><sheetData>'+datos+'</sheetData></worksheet>']
+  ]);
+}
+function bytesDe(dataUrl){var b=atob(dataUrl.split(',')[1]),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+function crearDOCX(bloques){ // {h}|{p}|{li}|{tabla:filas, fotos:[dataUrl|null]}
+  var x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n', medios=[], rels='', cuerpo='';
+  var run=function(t,neg){return '<w:r>'+(neg?'<w:rPr><w:b/></w:rPr>':'')+'<w:t xml:space="preserve">'+xesc(t)+'</w:t></w:r>';};
+  var par=function(t,estilo,neg){return '<w:p>'+(estilo?'<w:pPr><w:pStyle w:val="'+estilo+'"/></w:pPr>':'')+run(t,neg)+'</w:p>';};
+  var imagen=function(url){var n=medios.length+1,id='rIdImg'+n;medios.push(['word/media/foto'+n+'.jpeg',bytesDe(url)]);rels+='<Relationship Id="'+id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/foto'+n+'.jpeg"/>';
+    var cx=720000,cy=900000;
+    return '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+n+'" name="Foto '+n+'"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+n+'" name="Foto '+n+'"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+id+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';};
+  var celda=function(contenido){return '<w:tc><w:tcPr><w:tcW w:w="0" w:type="auto"/></w:tcPr>'+contenido+'</w:tc>';};
+  bloques.forEach(function(b){
+    if(b.h!=null) cuerpo+=par(b.h,'Heading1');
+    else if(b.li!=null) cuerpo+=par('• '+b.li);
+    else if(b.p!=null) cuerpo+=par(b.p);
+    else if(b.tabla){
+      var conFotos=!!b.fotos;
+      cuerpo+='<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="5000" w:type="pct"/><w:tblBorders><w:top w:val="single" w:sz="4"/><w:left w:val="single" w:sz="4"/><w:bottom w:val="single" w:sz="4"/><w:right w:val="single" w:sz="4"/><w:insideH w:val="single" w:sz="4"/><w:insideV w:val="single" w:sz="4"/></w:tblBorders></w:tblPr>';
+      b.tabla.forEach(function(f,r){
+        cuerpo+='<w:tr>'+(r===0?'<w:trPr><w:tblHeader/></w:trPr>':'');
+        if(conFotos) cuerpo+=celda(r===0?par('Foto',null,true):(b.fotos[r-1]?imagen(b.fotos[r-1]):'<w:p/>'));
+        f.forEach(function(v){cuerpo+=celda(par(v,null,r===0));});
+        cuerpo+='</w:tr>';
+      });
+      cuerpo+='</w:tbl><w:p/>';
+    }
+  });
+  return zip([
+    ['[Content_Types].xml',x+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>'],
+    ['_rels/.rels',x+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'],
+    ['word/_rels/document.xml.rels',x+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+rels+'</Relationships>'],
+    ['word/styles.xml',x+'<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/><w:lang w:val="es-MX"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr><w:spacing w:after="120"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:before="240"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="0F766E"/><w:sz w:val="32"/></w:rPr></w:style><w:style w:type="table" w:styleId="TableGrid"><w:name w:val="Table Grid"/></w:style></w:styles>'],
+  ].concat(medios).concat([
+    ['word/document.xml',x+'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'+cuerpo+'<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>']
+  ]));
+}
+/* Entregar el archivo: dentro de Claude pide confirmación al usuario; fuera de Claude usa la descarga normal del navegador */
+var guardador=null;
+try{ if(window.claude&&window.claude.use) window.claude.use('downloads').then(function(d){guardador=d;},function(){}); }catch(e){}
+function descargar(nombre,datos){
+  if(guardador) return guardador.save({filename:nombre,data:datos}).then(function(){return 'ok';},function(e){return e&&e.code==='declined'?'no':'error';});
+  try{var a=document.createElement('a');a.href=URL.createObjectURL(datos instanceof Blob?datos:new Blob([datos]));a.download=nombre;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);return Promise.resolve('ok');}catch(e){return Promise.resolve('error');}
+}
+function vExportar(){
+  var c=col(); var F=[['Excel','xlsx',true],['CSV','csv',true],['Word con fotos','docx',false]];
+  var h='<div class="grupo">Formato</div><div id="fmt" style="display:flex;flex-direction:column;gap:6px">'+F.map(function(f,i){var lock=!libre()&&!f[2];return '<button class="opcion'+(lock?' bloqueada':'')+'" data-i="'+i+'" aria-pressed="'+(i===0)+'"><span>'+esc(f[0])+'</span>'+(lock?candado():'')+'</button>';}).join('')+'</div>';
+  h+='<div class="grupo">Vista previa</div><div class="vista" id="vistaExp"></div><div class="fila"><button class="boton" id="desc">Descargar</button><button class="boton sec" id="copiarCSV">Copiar</button></div><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  var elegido=0;
+  var filas=tabla(c);
+  $('vistaExp').innerHTML='<table>'+filas.map(function(f,i){return '<tr>'+f.map(function(v){return (i?'<td>':'<th>')+esc(v)+(i?'</td>':'</th>');}).join('')+'</tr>';}).join('')+'</table>';
+  $('fmt').querySelectorAll('button').forEach(function(b){b.onclick=function(){var f=F[+b.getAttribute('data-i')]; if(!libre()&&!f[2]) return ofrecerPago('Exportar a '+f[0]); elegido=+b.getAttribute('data-i'); $('fmt').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed','false');}); b.setAttribute('aria-pressed','true'); aviso('');};});
+  var archivo=function(){
+    var f=F[elegido], base=c.nombre.replace(/[^\wáéíóúñÁÉÍÓÚÑ -]/g,'').trim()||'coleccion';
+    if(f[1]==='csv') return [base+'.csv','﻿'+aCSV(filas)];
+    if(f[1]==='xlsx') return [base+'.xlsx',crearXLSX(filas,c.nombre)];
+    if(f[1]==='docx') return [base+'.docx',crearDOCX([{h:c.nombre},{tabla:filas,fotos:c.objetos.map(function(o){return (o.fotos||[])[0]||null;})}])];
+  };
+  $('desc').onclick=function(){var a=archivo();
+    descargar(a[0],a[1]).then(function(r){aviso(r==='ok'?'Listo: '+a[0]:r==='no'?'Descarga cancelada.':'No se pudo guardar el archivo aquí. Use «Copiar».',r==='ok'?'bien':'pago');});};
+  $('copiarCSV').onclick=function(){copiar(aCSV(filas),'Copiado. Péguelo en Excel o Google Sheets.');};
+}
+/* ---- Leer un .xlsx dentro del teléfono, sin programas adicionales: el archivo es un ZIP; se descomprime con DecompressionStream
+   y se lee la primera hoja (textos compartidos, textos en línea, números y verdadero/falso). ---- */
+function leerXLSX(archivo){
+  return archivo.arrayBuffer().then(function(buf){
+    var v=new DataView(buf), u8=new Uint8Array(buf), fin=-1;
+    for(var i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65557);i--) if(v.getUint32(i,true)===0x06054b50){fin=i;break;}
+    if(fin<0) throw new Error('zip');
+    var n=v.getUint16(fin+10,true), pos=v.getUint32(fin+16,true), partes={};
+    for(var k=0;k<n;k++){
+      var metodo=v.getUint16(pos+10,true), tam=v.getUint32(pos+20,true), lnom=v.getUint16(pos+28,true), lext=v.getUint16(pos+30,true), lcom=v.getUint16(pos+32,true), loc=v.getUint32(pos+42,true);
+      var nombre=new TextDecoder().decode(u8.subarray(pos+46,pos+46+lnom)), ini=loc+30+v.getUint16(loc+26,true)+v.getUint16(loc+28,true);
+      partes[nombre]={metodo:metodo,datos:u8.subarray(ini,ini+tam)};
+      pos+=46+lnom+lext+lcom;
+    }
+    var texto=function(nombre){
+      var x=partes[nombre]; if(!x) return Promise.resolve('');
+      if(x.metodo===0) return Promise.resolve(new TextDecoder().decode(x.datos));
+      if(x.metodo!==8||typeof DecompressionStream==='undefined') return Promise.reject(new Error('inflar'));
+      return new Response(new Blob([x.datos]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    };
+    var xml=function(t){return new DOMParser().parseFromString(t,'application/xml');};
+    var hijos=function(nodo,nombre){return Array.prototype.filter.call(nodo.getElementsByTagName('*'),function(e){return e.localName===nombre;});};
+    return Promise.all([texto('xl/workbook.xml'),texto('xl/_rels/workbook.xml.rels'),texto('xl/sharedStrings.xml')]).then(function(r){
+      var hoja=hijos(xml(r[0]),'sheet')[0], destino='xl/worksheets/sheet1.xml';
+      if(hoja){var id=hoja.getAttribute('r:id')||hoja.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+        var rel=hijos(xml(r[1]),'Relationship').filter(function(x){return x.getAttribute('Id')===id;})[0];
+        if(rel){var t=rel.getAttribute('Target');destino=t.charAt(0)==='/'?t.slice(1):'xl/'+t.replace(/^\.\//,'');}}
+      var compartidos=r[2]?hijos(xml(r[2]),'si').map(function(si){return hijos(si,'t').map(function(t){return t.textContent;}).join('');}):[];
+      return texto(destino).then(function(t){
+        var filas=[];
+        hijos(xml(t),'row').forEach(function(row){
+          var fila=[];
+          hijos(row,'c').forEach(function(cel,j){
+            var ref=cel.getAttribute('r'), col=j;
+            if(ref){col=0;ref.replace(/[A-Z]+/,function(l){for(var q=0;q<l.length;q++)col=col*26+l.charCodeAt(q)-64;});col--;}
+            var tipo=cel.getAttribute('t'), vv=hijos(cel,'v')[0], val='';
+            if(tipo==='s') val=vv?compartidos[+vv.textContent]||'':'';
+            else if(tipo==='inlineStr') val=hijos(cel,'t').map(function(x){return x.textContent;}).join('');
+            else if(tipo==='b') val=vv&&vv.textContent==='1'?'Sí':'No';
+            else val=vv?vv.textContent:'';
+            while(fila.length<col) fila.push('');
+            fila[col]=String(val).trim();
+          });
+          if(fila.join('').length) filas.push(fila);
+        });
+        return filas;
+      });
+    });
+  });
+}
+function vImportar(){
+  var c=col();
+  var h='<p class="aviso">Elija un archivo de Excel (.xlsx) o CSV con una fila de títulos, o pegue aquí las celdas copiadas de una hoja de cálculo (incluida la fila de títulos). De un Excel con varias hojas se lee la primera.</p>';
+  h+='<div class="campo"><label for="arch">Archivo de Excel o CSV</label><input type="file" id="arch" accept=".xlsx,.csv,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></div><div class="campo"><label for="pegar">O pegue las celdas</label><textarea id="pegar"></textarea></div><button class="boton" id="leerImp">Revisar columnas</button><div id="mapa" style="display:flex;flex-direction:column;gap:8px"></div><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  var emparejar=function(filas){
+    if(filas.length<2) return aviso('Se necesita la fila de títulos y al menos una fila de datos.','pago');
+    var destinos=['(no importar)','Nombre'].concat(c.campos).concat(c.niveles.map(function(n){return 'Lugar: '+n;})).concat((c.clasif||[]).map(function(n){return 'Qué es: '+n;}));
+    var adivina=function(t){var k=palabras(t).join(' ');var d=destinos.filter(function(x){return palabras(x.replace(/^(Lugar|Qué es): /,'')).join(' ')===k;})[0];return d||(k.indexOf('titulo')>=0||k.indexOf('nombre')>=0?'Nombre':'(no importar)');};
+    $('mapa').innerHTML='<div class="grupo">Empareje cada columna ('+(filas.length-1)+' filas)</div>'+filas[0].map(function(t,i){var g=adivina(t);return '<div class="campo"><label for="m'+i+'">'+esc(t||('Columna '+(i+1)))+'</label><select id="m'+i+'">'+destinos.map(function(d){return '<option '+(d===g?'selected':'')+'>'+esc(d)+'</option>';}).join('')+'</select></div>';}).join('')+'<p class="aviso">Cada objeto importado recibe un folio nuevo de esta colección.</p><button class="boton grande" id="hacerImp">Importar '+(filas.length-1)+' objetos</button>';
+    $('hacerImp').onclick=function(){
+      var m=filas[0].map(function(_,i){return $('m'+i).value;}); if(m.indexOf('Nombre')<0) return aviso('Elija qué columna es el Nombre.','pago');
+      var n=0, t=Date.now(); filas.slice(1).forEach(function(f,k){var o={id:uid(),alta:t+k,nombre:'',campos:{},lugar:c.niveles.map(function(){return '';}),clasif:{},fotos:[]}; m.forEach(function(d,i){var v=f[i]||''; if(d==='Nombre')o.nombre=v; else if(d.indexOf('Lugar: ')===0)o.lugar[c.niveles.indexOf(d.slice(7))]=v; else if(d.indexOf('Qué es: ')===0){if(v)o.clasif[d.slice(8)]=v;} else if(d!=='(no importar)')o.campos[d]=v;}); if(o.nombre){c.objetos.push(o);n++;}});
+      guardar(); aviso('Se importaron '+n+' objetos.','bien'); $('mapa').innerHTML='';
+    };
+  };
+  $('arch').onchange=function(ev){
+    var f=ev.target.files[0]; if(!f) return; $('mapa').innerHTML='';
+    if(/\.xlsx$/i.test(f.name)) return leerXLSX(f).then(function(filas){$('pegar').value='';emparejar(filas);},function(e){aviso(e&&e.message==='inflar'?'Este navegador no puede abrir archivos de Excel. Guárdelo como CSV e impórtelo.':'No se pudo leer ese archivo de Excel. Revise que sea .xlsx y no .xls antiguo.','pago');});
+    if(/\.xls$/i.test(f.name)) return aviso('Ese es un Excel antiguo (.xls). Ábralo en Excel y guárdelo como .xlsx o CSV.','pago');
+    var r=new FileReader(); r.onload=function(){$('pegar').value=r.result; $('leerImp').click();}; r.readAsText(f);
+  };
+  $('leerImp').onclick=function(){
+    var t=$('pegar').value.replace(/^﻿/,'').trim(); if(!t) return aviso('Pegue celdas o elija un archivo.','pago');
+    var sep=t.split('\n')[0].indexOf('\t')>=0?'\t':(t.split('\n')[0].indexOf(';')>=0?';':',');
+    emparejar(t.split(/\r?\n/).map(function(l){var out=[],cur='',q=false;for(var i=0;i<l.length;i++){var ch=l[i];if(ch==='"'){if(q&&l[i+1]==='"'){cur+='"';i++;}else q=!q;}else if(ch===sep&&!q){out.push(cur);cur='';}else cur+=ch;}out.push(cur);return out.map(function(s){return s.trim();});}).filter(function(f){return f.join('').length;}));
+  };
+}
+function armarDoc(texto,tipo){
+  if(tipo==='excel'){var filas=texto.split(/siguiente rengl[oó]n/i).map(function(r){return r.split(/siguiente columna/i).map(function(s){return s.trim();});}).filter(function(r){return r.join('').length;});return {filas:filas,html:'<table>'+filas.map(function(r,i){return '<tr>'+r.map(function(v){return (i?'<td>':'<th>')+esc(v)+(i?'</td>':'</th>');}).join('')+'</tr>';}).join('')+'</table>'};}
+  var partes=texto.split(/(t[ií]tulo|punto y aparte|nueva vi[nñ]eta)/i), out='', modo='p', buf='', bloques=[];
+  var vaciar=function(){var s=buf.trim(); if(s){s=s.charAt(0).toUpperCase()+s.slice(1);
+    if(modo==='h'){out+='<h4>'+esc(s)+'</h4>';bloques.push({h:s});}
+    else if(modo==='li'){out+='<p>• '+esc(s)+'</p>';bloques.push({li:s});}
+    else {s+=/[.!?]$/.test(s)?'':'.';out+='<p>'+esc(s)+'</p>';bloques.push({p:s});}} buf='';};
+  partes.forEach(function(p){var k=palabras(p).join(' '); if(k==='titulo'){vaciar();modo='h';} else if(k==='punto y aparte'){vaciar();modo='p';} else if(k==='nueva vineta'){vaciar();modo='li';} else buf+=p;});
+  vaciar(); return {html:out||'<p>Vista previa vacía.</p>',bloques:bloques};
+}
+function vDictar(){
+  /* Versión gratis: 1 documento de Word y 1 de Excel de prueba; después, de pago. Se cuentan en todo el celular, no por colección. */
+  var usados=function(t){return (E.pruebasDictado||{})[t]||0;};
+  var quedaPrueba=function(t){return usados(t)<LIMITES.documentosPrueba;};
+  var NOMBRE={word:'Word',excel:'Excel'};
+  if(!libre()&&!quedaPrueba('word')&&!quedaPrueba('excel')){$('cuerpo').innerHTML='<div class="aviso pago"><b>Ya usó sus documentos de prueba (1 de Word y 1 de Excel).</b><br>Dictar más documentos es parte de la versión completa.</div><button class="boton grande" id="verPago">Ver la versión completa</button>';$('verPago').onclick=function(){ofrecerPago('Dictar más documentos');};return;}
+  var h='<p class="aviso pago" id="avisoPrueba"></p><div class="fila"><button class="opcion" style="width:auto" id="tW">Word</button><button class="opcion" style="width:auto" id="tE">Excel</button></div>';
+  h+='<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><p class="aviso" id="ordenes"></p><div class="campo"><label for="txtDoc">Lo dictado (puede corregirlo)</label><textarea id="txtDoc"></textarea></div><div class="grupo">Vista previa</div><div class="vista" id="prev"></div><button class="boton grande" id="guardaDoc">Guardar documento</button><div class="aviso" id="avisoGlobal"></div>';
+  $('cuerpo').innerHTML=h;
+  var tipo=libre()||quedaPrueba('word')?'word':'excel';
+  var pinta=function(){
+    $('tW').setAttribute('aria-pressed',String(tipo==='word')); $('tE').setAttribute('aria-pressed',String(tipo==='excel'));
+    $('prev').innerHTML=armarDoc($('txtDoc').value,tipo).html;
+    $('ordenes').textContent=tipo==='word'?'Diga «título», «punto y aparte» o «nueva viñeta» para dar forma al documento.':'Diga «siguiente columna» y «siguiente renglón» para pasar de celda.';
+    $('avisoPrueba').textContent=libre()?'':'Versión gratis: 1 documento de Word y 1 de Excel de prueba. '+['word','excel'].map(function(t){return NOMBRE[t]+': '+(quedaPrueba(t)?'disponible':'ya usado');}).join(' · ')+'.';
+  };
+  $('tW').onclick=function(){tipo='word';pinta();};
+  $('tE').onclick=function(){tipo='excel';pinta();};
+  $('txtDoc').oninput=pinta;
+  $('mic').onclick=function(){encenderMic({caja:'txtDoc',sep:' ',alCambiar:pinta});};
+  $('guardaDoc').onclick=function(){
+    var t=$('txtDoc').value.trim(); if(!t) return aviso('Dicte o escriba algo primero.','pago');
+    if(!libre()&&!quedaPrueba(tipo)) return ofrecerPago('Dictar más documentos de '+NOMBRE[tipo]);
+    var prueba=!libre(), d=armarDoc(t,tipo), nombre='Documento dictado.'+(tipo==='word'?'docx':'xlsx');
+    descargar(nombre,tipo==='word'?crearDOCX(d.bloques):crearXLSX(d.filas,'Dictado')).then(function(r){
+      if(r==='ok'&&prueba){E.pruebasDictado=E.pruebasDictado||{};E.pruebasDictado[tipo]=usados(tipo)+1;guardar();pinta();}
+      aviso(r==='ok'?'Documento guardado: '+nombre+(prueba?'. Ese fue su documento de prueba de '+NOMBRE[tipo]+'.':''):r==='no'?'Guardado cancelado; su documento de prueba sigue disponible.':'No se pudo guardar el archivo aquí.',r==='ok'?'bien':'pago');
+    });
+  };
+  pinta();
+}
+
+/* ---------------- Arranque ---------------- */
+document.querySelectorAll('#pestanas button').forEach(function(b){b.onclick=function(){ir(b.getAttribute('data-p'));};});
+iniciarDatos().then(function(){plan(); ir('lista');});
+})();
+</script>
+</body>
+</html>
