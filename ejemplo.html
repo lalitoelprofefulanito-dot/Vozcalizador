@@ -91,6 +91,7 @@ textarea{min-height:110px;resize:vertical}
 .mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--acento);color:var(--sobre-acento);font-size:1.9rem;align-self:center}
 .mic.activo{background:var(--error);box-shadow:0 0 0 8px rgba(197,48,48,.18)}
 .foto-previa{width:100%;max-height:180px;object-fit:contain;border-radius:10px;background:var(--fondo)}
+.guia ol{margin:6px 0 8px 1.1rem;padding:0;font-size:.86rem;line-height:1.45}.guia li{margin-bottom:4px}.guia .dicho{background:var(--acento-suave);border-radius:8px;padding:8px 10px;font-size:.9rem;font-style:italic;margin:4px 0 8px}.guia table{font-size:.78rem}
 .vista{border:1.5px solid var(--linea);border-radius:10px;padding:10px;font-size:.84rem;max-height:220px;overflow:auto;background:var(--fondo)}
 .vista table{border-collapse:collapse;width:100%}
 .vista td,.vista th{border:1.5px solid var(--linea);padding:3px 6px;text-align:left}
@@ -549,7 +550,7 @@ var $=function(id){return document.getElementById(id);};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 var NUMS={uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12',trece:'13',catorce:'14',quince:'15',veinte:'20',treinta:'30',cien:'100',mil:'1000'};
 var ENLACES={el:1,la:1,los:1,las:1,un:1,una:1,de:1,del:1,y:1,e:1,a:1,al:1,en:1,con:1,por:1,para:1,que:1,se:1,su:1};
-function palabras(s){return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(Boolean).map(function(p){return NUMS[p]||p.replace(/^0+(?=\d)/,'');});}
+function palabras(s){return String(s).toLowerCase().normalize('NFD').replace(/n\u0303/g,'ñ').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9ñ]+/g,' ').trim().split(' ').filter(Boolean).map(function(p){return NUMS[p]||p.replace(/^0+(?=\d)/,'');});}
 function inicial(s){var w=palabras(s).filter(function(x){return !ENLACES[x];});return (w[0]||'?').slice(0,1).toUpperCase();}
 var LETRA_NUM=['cero','uno','dos','tres','cuatro','cinco','seis','siete','ocho','nueve','diez'];
 function dice(o,c,formato){
@@ -692,7 +693,7 @@ function vAgregar(){
   var c=col(); var o=editar?c.objetos.filter(function(x){return x.id===editar;})[0]:null; editar=null;
   var borrador=o?JSON.parse(JSON.stringify(o)):{id:uid(),nombre:'',campos:{},lugar:[],clasif:{},fotos:[]};
   var h='<h2 style="font-size:1.1rem">'+(o?'Editar objeto'+(o.folio?' · '+esc(folio(o,c)):''):'Agregar objeto')+'</h2>';
-  if(!o) h+='<details class="tarjeta" id="dictObj"><summary><b>🎙 Dictar objetos con la voz</b></summary><p class="aviso" id="ayudaDict"></p><button class="mic" id="mic" aria-pressed="false" aria-label="Dictar objetos">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><div class="campo"><label for="txtObj">Lo dictado (puede corregirlo)</label><textarea id="txtObj"></textarea></div><div class="vista" id="prevObj"></div><div class="fila" id="botonesDict"></div></details>';
+  if(!o) h+='<details class="tarjeta" id="dictObj"><summary><b>🎙 Dictar objetos con la voz</b></summary>'+guiaDictado('objetos',c)+'<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar objetos">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><div class="campo"><label for="txtObj">Lo dictado (puede corregirlo)</label><textarea id="txtObj"></textarea></div><div class="vista" id="prevObj"></div><div class="fila" id="botonesDict"></div></details>';
   h+='<div class="campo"><label for="foto">Foto</label><input type="file" id="foto" accept="image/*" capture="environment" '+(libre()?'multiple':'')+'></div><div id="fotos" class="fila"></div>';
   h+='<p class="aviso">'+(libre()?'Puede subir varias fotos por objeto.':'Versión gratis: 1 foto por objeto.')+' Por ahora la app no lee el texto de la foto: escriba el nombre o díctelo con «Dictar objetos».</p>';
   h+='<div class="campo"><label for="nombre">Nombre (obligatorio)</label><input id="nombre" value="'+esc(borrador.nombre)+'" placeholder="Nombre del objeto"></div>';
@@ -764,11 +765,6 @@ function vAgregar(){
   if(!o){
     /* Dictar objetos: gratis, un objeto por dictado; de pago, varios seguidos con «siguiente objeto». */
     var dictados=[];
-    var ejemploPalabras=function(){
-      var e=[]; if(c.niveles[0]) e.push('«'+c.niveles[0].toLowerCase()+' …»'); if(c.niveles[1]) e.push('«primer '+c.niveles[1].toLowerCase()+'»'); if(c.clasif&&c.clasif[0]) e.push('«'+c.clasif[0].toLowerCase()+' …»'); if(c.campos[0]) e.push('«'+c.campos[0].toLowerCase()+' …»');
-      return e.join(', ');
-    };
-    $('ayudaDict').textContent='Diga el nombre del objeto y después su catalogación'+(ejemploPalabras()?', por ejemplo '+ejemploPalabras():'')+'. También sirven «primer orden …», «segundo orden …», «clasificación …» y «en el …» con un valor que ya usó. Lo que dice se queda puesto para los objetos siguientes hasta que lo cambie. Para pasar a otro objeto diga «siguiente objeto».'+(libre()?'':' Versión gratis: un objeto por dictado.');
     var pintaDict=function(){
       dictados=leerDictadoObjetos($('txtObj').value,c);
       var cols=['Nombre'].concat(c.niveles,c.clasif||[],c.campos);
@@ -856,6 +852,9 @@ function leerDictadoObjetos(texto,c){
   var keyId=function(k){return k.tipo+':'+k.nombre;};
   var poner=function(k,valor){
     if(!valor) return;
+    var pv=palabras(valor).join(' '), ya=conocidos.filter(function(x){return x.k.nombre===k.nombre&&x.p.join(' ')===pv;})[0];
+    if(ya) valor=ya.v;   // «ropero» dictado = «Ropero» ya registrado: se guarda igual, para que filtros y búsquedas no lo separen
+    else if(k.tipo==='donde'||(k.tipo==='que'&&!CLASIFICACIONES[k.nombre])) valor=valor.charAt(0).toUpperCase()+valor.slice(1);
     if(k.tipo==='donde'){var pn=palabras(valor); if(pn.length===1&&/^\d+$/.test(pn[0])) valor=pn[0];}
     if(k.tipo==='que'){var fijos=CLASIFICACIONES[k.nombre]; if(fijos){var m=fijos.filter(function(f){return palabras(f).join(' ')===palabras(valor).join(' ');})[0]; if(m) valor=m;}}
     fijo[keyId(k)]={k:k,v:valor}; if(actual) actual.propios[keyId(k)]=true; conocer(k,valor);
@@ -883,6 +882,7 @@ function leerDictadoObjetos(texto,c){
     if(t[i].n==='clasificacion'&&cl.length){cerrarCaptura();captura={k:claves.filter(function(x){return x.tipo==='que'&&x.nombre===cl[0];})[0],b:[]};i++;continue;}
     if(t[i].n==='en'){var a=i+1; if(t[a]&&!t[a].c&&/^(el|la|los|las)$/.test(t[a].n)) a++; var cv=null; for(j=0;j<conocidos.length;j++){if(igual(a,conocidos[j].p)){cv=conocidos[j];break;}} if(cv){cerrarCaptura();poner(cv.k,cv.v);i=a+cv.p.length;continue;}}
     for(j=0;j<claves.length;j++){if(igual(i,claves[j].p)){k=claves[j];break;}}
+    if(k&&captura&&captura.k===k&&!captura.b.length) k=null;   // «archivero archivero gris»: la palabra repetida ya es parte del valor
     if(k){cerrarCaptura();captura={k:k,b:[]};i+=k.p.length;continue;}
     if(captura){
       captura.b.push(t[i]); i++;
@@ -1042,6 +1042,82 @@ var motorIdentificacion=(function(){
   return {crear:crear};
 })();
 function identificar(texto,c){return motorIdentificacion.crear(c.objetos)(texto);}
+/* ---- Cómo dictar en cada sección ----
+   Cada micrófono trae su guía: pasos y un ejemplo armado con los datos de la colección actual. El ejemplo se pasa por el mismo
+   lector que usa la app (dictado de objetos, motor de Ubicar o armado de documentos), así lo que muestra la guía es lo que la app hace. */
+var CONSEJOS_VOZ='Hable con su voz normal, a un palmo del teléfono y sin ruido de fondo. Haga una pausa corta entre cada cosa: cada pausa separa. La línea debajo del 🎙 dice si está escuchando o por qué no. Los números se pueden decir con palabra («dos») o en cifra. Lo dictado siempre se puede corregir a mano antes de seguir.';
+function guiaDictado(seccion,c){
+  var pasos=[], dicho='', resultado='', nota='';
+  var min=function(t){return String(t).toLowerCase();};
+  var masUsado=function(valores){var n={},mejor='';valores.filter(Boolean).forEach(function(v){n[v]=(n[v]||0)+1; if(!mejor||n[v]>n[mejor]) mejor=v;}); return mejor;};
+  var tabla=function(cols,filas){return '<table><tr>'+cols.map(function(x){return '<th>'+esc(x)+'</th>';}).join('')+'</tr>'+filas.map(function(f){return '<tr>'+f.map(function(v){return '<td>'+esc(v||'')+'</td>';}).join('')+'</tr>';}).join('')+'</table>';};
+  if(seccion==='objetos'){
+    var cl=c.clasif||[], claves=[];
+    c.niveles.forEach(function(n,i){var v=masUsado(c.objetos.map(function(o){return (o.lugar||[])[i];}))||String(i+1); claves.push('«'+min(n)+' '+min(v)+'»');});
+    cl.forEach(function(k){var v=masUsado(c.objetos.map(function(o){return (o.clasif||{})[k];}))||(CLASIFICACIONES[k]||[])[0]||''; if(v) claves.push('«'+min(k)+' '+min(v)+'»');});
+    c.campos.forEach(function(k){var v=masUsado(c.objetos.map(function(o){return (o.campos||{})[k];})); if(v) claves.push('«'+min(k)+' '+min(v)+'»');});
+    // El ejemplo usa dos objetos de la colección con sus propios datos: el primero completo y del segundo solo lo que cambia.
+    var datosDe=function(o){var d=[]; if(!o) return d;
+      c.niveles.forEach(function(n,i){var v=(o.lugar||[])[i]; d.push([n,v||String(i+1)]);});
+      if(cl[0]) d.push([cl[0],(o.clasif||{})[cl[0]]||(CLASIFICACIONES[cl[0]]||[])[0]||'']);
+      if(c.campos[0]) d.push([c.campos[0],(o.campos||{})[c.campos[0]]||'']);
+      return d.filter(function(x){return x[1];});};
+    var o1=c.objetos[0], o2=o1&&(c.objetos.filter(function(x){return x!==o1&&(x.lugar||[])[0]===(o1.lugar||[])[0];})[0]||c.objetos[1]);
+    var d1=datosDe(o1), d2=datosDe(o2).filter(function(x){return !d1.some(function(y){return y[0]===x[0]&&y[1]===x[1];});});
+    var decir=function(d){return d.map(function(x){return min(x[0])+' '+min(x[1]);}).join(' ');};
+    pasos=['Toque 🎙 y diga primero el <b>nombre del objeto</b>.',
+      claves.length?'Después diga el nombre de cada dato y enseguida su valor. En esta colección: '+esc(claves.join(', '))+'.':'Esta colección todavía no tiene catalogación: solo diga los nombres.',
+      c.niveles.length?'Para los lugares también sirven «primer orden …», «segundo orden …», '+(c.niveles[1]?'«primer '+esc(min(c.niveles[1]))+'» y ':'')+'«en el …» con un lugar que ya usó.':'',
+      'Para pasar al siguiente objeto diga <b>«siguiente objeto»</b>. Lo que ya dijo (lugar, categoría) se queda puesto para los siguientes hasta que lo cambie; en la tabla aparece en cursiva.',
+      'Revise la tabla, corrija lo que haga falta y toque «Guardar».'].filter(Boolean);
+    dicho=(o1?min(o1.nombre):'objeto uno')+(d1.length?' '+decir(d1):'')+' siguiente objeto '+(o2?min(o2.nombre):'objeto dos')+(d2.length?' '+decir(d2):'');
+    var leidos=leerDictadoObjetos(dicho,c), cols=['Nombre'].concat(c.niveles,cl,c.campos);
+    resultado=tabla(cols,leidos.map(function(d){return [d.nombre].concat(c.niveles.map(function(_,i){return d.lugar[i];}),cl.map(function(k){return d.clasif[k];}),c.campos.map(function(k){return d.campos[k];}));}));
+    nota='Del segundo objeto solo se dice lo que cambia: lo demás se queda puesto del primero (en la tabla de la app aparece en cursiva).'+(libre()?'':' Versión gratis: un objeto por dictado.');
+  }
+  else if(seccion==='ubicar'){
+    pasos=['Elija en qué orden quiere el resultado.',
+      'Tome los objetos, toque 🎙 y diga el <b>nombre de cada uno</b>, con una pausa entre uno y otro. No hace falta decir el nombre completo ni exacto.',
+      'Si dos objetos tienen nombres parecidos, agregue una <b>pista</b> después del nombre: «de», «con» o «marca», el nombre del dato y su valor, como se registró'+(c.campos[0]?' (por ejemplo «… de '+esc(min(c.campos[0]))+' …»)':'')+'.',
+      'Si tiene dos objetos iguales, diga <b>«siguiente»</b> entre ellos.',
+      'Toque «Identificar». Si algo queda en duda, toque el correcto; lo que no esté en la colección se marca para revisarlo.'];
+    var usados=c.objetos.slice(0,2);
+    if(usados.length>=2){
+      var frases=usados.map(function(o){return min(o.nombre);}), pista='';
+      // Pista real: un objeto que comparte la primera palabra con otro y que su dato distingue; se comprueba con el motor.
+      c.objetos.some(function(o){
+        var primera=palabras(o.nombre)[0];
+        if(!c.objetos.some(function(x){return x!==o&&palabras(x.nombre)[0]===primera;})) return false;
+        var datos=[];
+        c.campos.forEach(function(k){var v=(o.campos||{})[k]; if(v) datos.push([k,v]);}); (c.clasif||[]).forEach(function(k){var v=(o.clasif||{})[k]; if(v) datos.push([k,v]);});
+        return datos.some(function(d){
+          if(palabras(d[1]).join('').length<2) return false;
+          var f=min(o.nombre.split(/\s+/)[0])+' de '+min(d[0])+' '+min(d[1]), r=identificar(f,c)[0];
+          if(r&&r.estado==='ok'&&r.o===o&&usados.indexOf(o)<0){pista=f; return true;}
+          return false;
+        });
+      });
+      if(pista) frases.push(pista);
+      dicho=frases.join(', ');
+      var filas=identificar(frases.join('\n'),c);
+      resultado=tabla(['Lo que dijo','La app lo encuentra'],filas.map(function(x){return [x.r,x.estado==='ok'?x.o.nombre+' · '+dice(x.o,c):x.estado==='duda'?'En duda: le pregunta cuál es':'No está en la colección'];}));
+      nota='Las comas del ejemplo son las pausas.'+(pista?' En «'+pista+'», el dato después de «de» es la pista que distingue al objeto de otros con nombre parecido.':'');
+    } else nota='Cuando registre al menos dos objetos, aquí aparecerá un ejemplo con sus propios datos.';
+  }
+  else if(seccion==='word'||seccion==='excel'){
+    pasos=seccion==='word'?['Toque 🎙 y dicte el texto con frases completas.','Para dar forma, diga como palabras sueltas, con una pausa antes y después: <b>«título»</b> (lo que sigue es un título), <b>«punto y aparte»</b> (empieza un párrafo) y <b>«nueva viñeta»</b> (empieza un punto de una lista).','Revise la vista previa, corrija el texto si hace falta y toque «Guardar documento».']
+      :['Toque 🎙 y diga lo que va en la primera celda.','Diga <b>«siguiente columna»</b> para pasar a la celda de la derecha y <b>«siguiente renglón»</b> para bajar al renglón siguiente. El primer renglón son los títulos de las columnas.','Revise la vista previa, corrija el texto si hace falta y toque «Guardar documento».'];
+    dicho=seccion==='word'?'título pendientes de la semana punto y aparte revisar lo que falta en la despensa nueva viñeta comprar arroz nueva viñeta lavar los frascos':'producto siguiente columna cantidad siguiente renglón arroz siguiente columna 2 siguiente renglón frijol siguiente columna 1';
+    resultado='<div class="vista">'+armarDoc(dicho,seccion).html+'</div>';
+  }
+  else if(seccion==='prueba'){
+    pasos=['Toque 🎙. La primera vez, Chrome pide permiso para el micrófono: elija «Permitir».','Diga una frase corta.','Si aparece «Entendí: …», el micrófono funciona en este teléfono. Si no, la línea de abajo dice por qué y qué hacer.'];
+    dicho='hoy acomodo la despensa';
+  }
+  return '<details class="tarjeta guia"><summary><b>📘 Cómo dictar aquí</b>'+(dicho?' (con ejemplo)':'')+'</summary><ol>'+pasos.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol>'
+    +(dicho?'<div class="etq">Ejemplo: usted dice</div><p class="dicho">«'+esc(dicho)+'»</p>':'')+(resultado?'<div class="etq">La app entiende</div>'+resultado:'')
+    +(nota?'<p class="aviso">'+esc(nota)+'</p>':'')+'<p class="aviso">'+esc(CONSEJOS_VOZ)+'</p></details>';
+}
 /* ---- Micrófono: un solo dictador para toda la app ----
    Es el mismo funcionamiento que ya se probó en celulares: escucha de corrido y, como el navegador corta el reconocimiento
    cuando deja de oír voz, se vuelve a encender solo (con una pausa breve) hasta que la persona lo apaga. Aguanta las pausas.
@@ -1149,7 +1225,7 @@ function encenderMic(op){
 function vTandas(){
   var c=col();
   var h='<p class="aviso">Tome varios objetos, toque el micrófono y diga sus nombres con una pausa entre cada uno. Para dos iguales, diga «siguiente» entre ellos.</p>';
-  h+='<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
+  h+=guiaDictado('ubicar',c)+'<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
   h+='<div class="campo"><label for="dictado">Lo dictado (puede corregirlo)</label><textarea id="dictado" placeholder="Un objeto por renglón"></textarea></div>';
   h+='<div class="grupo">¿En qué orden quiere el resultado?</div><div class="fila" id="ordenRes"></div>';
   h+='<div class="fila"><button class="boton" id="ident">Identificar</button><button class="boton sec" id="esc">🔊 Escuchar</button></div><div class="aviso" id="avisoGlobal"></div>';
@@ -1345,7 +1421,7 @@ function vAjustes(){
   h+='<div class="grupo">Colección actual</div><div class="campo"><label for="renCol">Nombre</label><input id="renCol" value="'+esc(c.nombre)+'"></div>';
   h+='<div class="campo"><label for="prefijo">Prefijo del folio (hasta 5 letras o números)</label><input id="prefijo" maxlength="5" autocomplete="off" value="'+esc(c.prefijo||'')+'"></div><p class="aviso" id="muestraFolio"></p>';
   h+='<div class="grupo">Respaldo</div><div class="tarjeta"><p class="aviso" id="ultimoResp"></p><button class="boton" id="respaldo">Descargar respaldo</button><label class="boton sec" for="archivoResp" style="text-align:center">Restaurar un respaldo</label><input type="file" id="archivoResp" accept=".json,application/json" hidden><p class="aviso">El respaldo es un archivo con todas sus colecciones, fotos e historial. Guárdelo en su correo o en la nube: si cambia de teléfono o se borra la app, lo restaura aquí. Siempre es gratis.</p></div>';
-  h+='<div class="grupo">Micrófono e informe de uso</div><div class="tarjeta"><p class="aviso">Pruebe si el dictado funciona en este teléfono: toque 🎙 y diga una frase.</p><div class="fila"><button class="mic" id="mic" aria-pressed="false" aria-label="Probar el micrófono">🎙</button><p class="aviso" id="pruebaMic" style="flex:1">'+esc(textoPruebaMic())+'</p></div><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
+  h+='<div class="grupo">Micrófono e informe de uso</div><div class="tarjeta"><p class="aviso">Pruebe si el dictado funciona en este teléfono: toque 🎙 y diga una frase.</p>'+guiaDictado('prueba',c)+'<div class="fila"><button class="mic" id="mic" aria-pressed="false" aria-label="Probar el micrófono">🎙</button><p class="aviso" id="pruebaMic" style="flex:1">'+esc(textoPruebaMic())+'</p></div><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p>';
   h+='<button class="boton sec" id="informe">Descargar informe de uso</button><p class="aviso">El informe cuenta cuántas veces se tocaron funciones de la versión completa y cómo respondió el micrófono, e incluye el modelo del teléfono y el navegador. No incluye nombres de objetos, datos ni fotos. Solo sale del teléfono si usted lo descarga y lo comparte; sirve para ajustar la app.</p></div>';
   h+='<div class="grupo">Liberar espacio</div><div class="tarjeta"><p class="aviso" id="espacio"></p><button class="boton peligro" id="quitarFotos">Quitar las fotos de esta colección</button><button class="boton peligro" id="borrarHist">Borrar el historial de búsquedas de esta colección</button><button class="boton peligro" id="vaciarCol">Vaciar esta colección (conserva su catalogación)</button><button class="boton peligro" id="borrarCol">Borrar esta colección</button><p class="aviso">Borrar siempre es gratis. Antes de borrar, si quiere conservarlo, use «Exportar» o el respaldo.</p></div><div class="aviso" id="avisoGlobal"></div>';
   $('cuerpo').innerHTML=h;
@@ -1629,13 +1705,13 @@ function vDictar(){
   var NOMBRE={word:'Word',excel:'Excel'};
   if(!libre()&&!quedaPrueba('word')&&!quedaPrueba('excel')){$('cuerpo').innerHTML='<div class="aviso pago"><b>Ya usó sus documentos de prueba (1 de Word y 1 de Excel).</b><br>Dictar más documentos es parte de la versión completa.</div><button class="boton grande" id="verPago">Ver la versión completa</button>';$('verPago').onclick=function(){ofrecerPago('Dictar más documentos');};return;}
   var h='<p class="aviso pago" id="avisoPrueba"></p><div class="fila"><button class="opcion" style="width:auto" id="tW">Word</button><button class="opcion" style="width:auto" id="tE">Excel</button></div>';
-  h+='<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><p class="aviso" id="ordenes"></p><div class="campo"><label for="txtDoc">Lo dictado (puede corregirlo)</label><textarea id="txtDoc"></textarea></div><div class="grupo">Vista previa</div><div class="vista" id="prev"></div><button class="boton grande" id="guardaDoc">Guardar documento</button><div class="aviso" id="avisoGlobal"></div>';
+  h+='<button class="mic" id="mic" aria-pressed="false" aria-label="Dictar">🎙</button><p class="aviso" id="estadoMic" role="status" aria-live="polite"></p><div id="guiaDoc"></div><div class="campo"><label for="txtDoc">Lo dictado (puede corregirlo)</label><textarea id="txtDoc"></textarea></div><div class="grupo">Vista previa</div><div class="vista" id="prev"></div><button class="boton grande" id="guardaDoc">Guardar documento</button><div class="aviso" id="avisoGlobal"></div>';
   $('cuerpo').innerHTML=h;
   var tipo=libre()||quedaPrueba('word')?'word':'excel';
   var pinta=function(){
     $('tW').setAttribute('aria-pressed',String(tipo==='word')); $('tE').setAttribute('aria-pressed',String(tipo==='excel'));
     $('prev').innerHTML=armarDoc($('txtDoc').value,tipo).html;
-    $('ordenes').textContent=tipo==='word'?'Diga «título», «punto y aparte» o «nueva viñeta» para dar forma al documento.':'Diga «siguiente columna» y «siguiente renglón» para pasar de celda.';
+    if($('guiaDoc').getAttribute('data-tipo')!==tipo){$('guiaDoc').innerHTML=guiaDictado(tipo,col()); $('guiaDoc').setAttribute('data-tipo',tipo);}   // se vuelve a dibujar solo al cambiar de Word a Excel, para no cerrar la guía al dictar
     $('avisoPrueba').textContent=libre()?'':'Versión gratis: 1 documento de Word y 1 de Excel de prueba. '+['word','excel'].map(function(t){return NOMBRE[t]+': '+(quedaPrueba(t)?'disponible':'ya usado');}).join(' · ')+'.';
   };
   $('tW').onclick=function(){tipo='word';pinta();};

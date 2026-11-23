@@ -1,5 +1,5 @@
 // Vozcalizador: guarda la app en el teléfono para que abra sin internet.
-const CACHE = 'vozcalizador-0177c05b86';
+const CACHE = 'vozcalizador-15a7b56e47';
 const APP = ['./', 'index.html', 'manifest.webmanifest', 'icono-192.png', 'icono-512.png'];
 const FUENTES = 'vozcalizador-fuentes';
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(APP)).then(() => self.skipWaiting())); });
